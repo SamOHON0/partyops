@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createServerComponentClient } from '@/lib/supabase'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 
 // POST: Create a Stripe Connect onboarding link for the current business
 export async function POST() {
   try {
+    const stripe = getStripe()
     const supabase = await createServerComponentClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

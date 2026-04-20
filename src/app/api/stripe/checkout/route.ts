@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
-import { stripe, PLATFORM_FEE_PERCENT } from '@/lib/stripe'
+import { getStripe, PLATFORM_FEE_PERCENT } from '@/lib/stripe'
 import { corsPreflight, withCors } from '@/lib/cors'
 
 export async function OPTIONS(request: NextRequest) {
@@ -10,6 +10,7 @@ export async function OPTIONS(request: NextRequest) {
 // POST: Create a Stripe Checkout session for a booking
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe()
     const body = await request.json()
     const { booking_id } = body
 

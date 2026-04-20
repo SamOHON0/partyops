@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase'
 
 // Disable body parsing so we can verify the Stripe signature
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     let event
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
     if (webhookSecret) {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
     } else {
       // In test mode without webhook secret, parse directly
       event = JSON.parse(body)
