@@ -27,7 +27,7 @@ const PLANS: PlanInfo[] = [
     price: 0,
     blurb: 'Everything you need to take bookings online.',
     features: [
-      'Up to 25 bookings / month',
+      'Up to 10 bookings / month',
       '1 embeddable booking widget',
       'Dashboard + calendar',
       'Basic customer records',

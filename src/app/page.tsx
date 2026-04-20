@@ -18,7 +18,6 @@ export default function Home() {
     <div className="min-h-screen bg-white text-ink-900">
       <SiteNav />
       <Hero />
-      <LogoStrip />
       <Features />
       <HowItWorks />
       <DeepFeatures />
@@ -193,25 +192,6 @@ function DashboardPreview() {
 }
 
 /* ------------------- Trusted by ------------------- */
-
-function LogoStrip() {
-  return (
-    <section className="border-y border-ink-100 bg-ink-50/40 py-10">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <p className="text-center text-xs font-medium uppercase tracking-wider text-ink-500">
-          Made for operators who care about their weekends back
-        </p>
-        <div className="mt-6 grid grid-cols-2 gap-6 opacity-70 sm:grid-cols-4 lg:grid-cols-6">
-          {['Dublin Bouncy', 'Emerald Events', 'Fingal Fun', 'WaterfordPlay', 'Cork Castles', 'BounceIE'].map((n) => (
-            <div key={n} className="flex items-center justify-center text-sm font-semibold tracking-tight text-ink-500">
-              {n}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
 
 /* ------------------- Features ------------------- */
 
@@ -482,9 +462,9 @@ function Pricing() {
       name: 'Starter',
       price: '€0',
       cadence: 'forever',
-      description: 'All the basics. For operators with up to 20 bookings a month.',
+      description: 'All the basics. For operators with up to 10 bookings a month.',
       features: [
-        'Up to 20 bookings / month',
+        'Up to 10 bookings / month',
         'Unlimited items',
         'Booking widget',
         'Bank transfer payment info',

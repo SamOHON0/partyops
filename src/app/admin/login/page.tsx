@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClientComponentClient } from '@/lib/supabase-client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { LogoMark, LogoWordmark } from '@/components/ui/Logo'
+import { LogoWordmark } from '@/components/ui/Logo'
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('')
@@ -33,8 +33,7 @@ export default function AdminLogin() {
     <div className="flex min-h-screen items-center justify-center bg-white px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 inline-flex items-center gap-2">
-            <LogoMark size={28} />
+          <div className="mb-5 flex justify-center">
             <LogoWordmark />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Welcome back</h1>
