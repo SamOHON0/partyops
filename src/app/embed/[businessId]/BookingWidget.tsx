@@ -47,6 +47,9 @@ export default function BookingWidget({
 
   const [step, setStep] = useState<Step>('pick')
   const [selected, setSelected] = useState<Product | null>(initialSelected)
+  // Picker grid is collapsed by default when arriving from a deep link
+  // (customer already chose on the product page). They can expand to browse.
+  const [pickerOpen, setPickerOpen] = useState<boolean>(!initialSelected)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [availability, setAvailability] = useState<{
@@ -318,7 +321,76 @@ export default function BookingWidget({
         {/* STEP: Pick */}
         {step === 'pick' && (
           <div className="space-y-6">
-            <h2 className="text-sm font-semibold text-ink-800">Pick an item</h2>
+            {selected && (
+              <div className="rounded-2xl border-2 border-brand-500 bg-white p-4 shadow-md shadow-brand-500/10">
+                <div className="flex items-start gap-3">
+                  <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-ink-100 sm:h-24 sm:w-24">
+                    {selected.image_url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={selected.image_url}
+                        alt={selected.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-ink-300">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M21 8 12 3 3 8v8l9 5 9-5V8z" />
+                          <path d="m3 8 9 5 9-5M12 13v8" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700">
+                      <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      You selected this
+                    </div>
+                    <div className="mt-1 truncate text-base font-semibold text-ink-900">{selected.name}</div>
+                    {selected.price_on_request ? (
+                      <div className="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-amber-700">
+                        Call for price
+                      </div>
+                    ) : (
+                      <div className="mt-1 inline-flex items-baseline gap-1 text-sm font-semibold text-brand-700">
+                        €{selected.price_per_day}
+                        <span className="text-[11px] font-normal text-brand-500">/day</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPickerOpen((o) => !o)}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-2 text-xs font-semibold text-ink-700 transition hover:bg-ink-50"
+                >
+                  {pickerOpen ? (
+                    <>
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                      </svg>
+                      Hide other items
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                      Browse other castles
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {(!selected || pickerOpen) && (
+              <h2 className="text-sm font-semibold text-ink-800">
+                {selected ? 'Browse all items' : 'Pick an item'}
+              </h2>
+            )}
+            {(!selected || pickerOpen) && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {products.map((p) => {
                 const active = selected?.id === p.id
@@ -326,7 +398,10 @@ export default function BookingWidget({
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => setSelected(p)}
+                    onClick={() => {
+                      setSelected(p)
+                      setPickerOpen(false)
+                    }}
                     className={`group overflow-hidden rounded-2xl border text-left transition-all ${
                       active
                         ? 'border-brand-500 shadow-md shadow-brand-500/10'
@@ -399,6 +474,7 @@ export default function BookingWidget({
                 </div>
               )}
             </div>
+            )}
 
             {selected && selected.price_on_request && (
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
