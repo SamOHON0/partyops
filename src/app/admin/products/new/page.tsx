@@ -15,6 +15,7 @@ export default function NewProduct() {
     quantity_available: '1',
     delivery_fee: '0',
     image_url: '',
+    price_on_request: false,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -43,11 +44,12 @@ export default function NewProduct() {
         business_id: user.id,
         name: formData.name,
         description: formData.description || null,
-        price_per_day: parseFloat(formData.price_per_day),
+        price_per_day: formData.price_on_request ? 0 : parseFloat(formData.price_per_day),
         quantity_available: parseInt(formData.quantity_available),
         delivery_fee: parseFloat(formData.delivery_fee || '0'),
         setup_time_buffer: 0,
         image_url: formData.image_url || null,
+        price_on_request: formData.price_on_request,
       })
 
       if (error) throw error
@@ -61,7 +63,12 @@ export default function NewProduct() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    const { name, value, type } = e.target as HTMLInputElement
+    if (type === 'checkbox') {
+      setFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }))
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
   }
 
   return (
@@ -121,13 +128,14 @@ export default function NewProduct() {
               type="number"
               name="price_per_day"
               id="price_per_day"
-              required
+              required={!formData.price_on_request}
+              disabled={formData.price_on_request}
               min="0"
               step="0.01"
               value={formData.price_per_day}
               onChange={handleChange}
               placeholder="120"
-              className="po-input"
+              className="po-input disabled:cursor-not-allowed disabled:opacity-50"
             />
           </Field>
           <Field
@@ -147,6 +155,22 @@ export default function NewProduct() {
             />
           </Field>
         </div>
+
+        <label className="flex items-start gap-2.5 rounded-lg border border-ink-200 bg-ink-50/50 p-3 cursor-pointer hover:bg-ink-50">
+          <input
+            type="checkbox"
+            name="price_on_request"
+            checked={formData.price_on_request}
+            onChange={handleChange}
+            className="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+          />
+          <span className="text-sm">
+            <span className="font-medium text-ink-900">Price on request</span>
+            <span className="block text-xs text-ink-500 mt-0.5">
+              Hide the price and date picker. Customer sees a "Call for price" badge and is prompted to contact you for a quote.
+            </span>
+          </span>
+        </label>
 
         <Field
           label="Delivery fee (€)"

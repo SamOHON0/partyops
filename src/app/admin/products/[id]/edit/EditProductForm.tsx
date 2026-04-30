@@ -14,6 +14,7 @@ interface Product {
   quantity_available: number
   delivery_fee: number | null
   image_url: string | null
+  price_on_request?: boolean
 }
 
 export default function EditProductForm({
@@ -24,6 +25,7 @@ export default function EditProductForm({
   action: (formData: FormData) => Promise<void>
 }) {
   const [imageUrl, setImageUrl] = useState(product.image_url || '')
+  const [priceOnRequest, setPriceOnRequest] = useState(!!product.price_on_request)
   const [businessId, setBusinessId] = useState<string | null>(null)
   const supabase = createClientComponentClient()
 
@@ -45,15 +47,24 @@ export default function EditProductForm({
         defaultValue={product.description ?? ''}
       />
 
+      <input type="hidden" name="price_on_request" value={priceOnRequest ? 'true' : 'false'} />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field
-          name="price_per_day"
-          label="Price per day (€)"
-          defaultValue={String(product.price_per_day)}
-          type="number"
-          step="0.01"
-          required
-        />
+        <div>
+          <label htmlFor="price_per_day" className="mb-1.5 block text-xs font-medium text-ink-700">
+            Price per day (€)
+          </label>
+          <input
+            id="price_per_day"
+            name="price_per_day"
+            type="number"
+            step="0.01"
+            required={!priceOnRequest}
+            disabled={priceOnRequest}
+            defaultValue={String(product.price_per_day)}
+            className="po-input disabled:cursor-not-allowed disabled:opacity-50"
+          />
+        </div>
         <Field
           name="quantity_available"
           label="Quantity"
@@ -63,6 +74,21 @@ export default function EditProductForm({
           required
         />
       </div>
+
+      <label className="flex items-start gap-2.5 rounded-lg border border-ink-200 bg-ink-50/50 p-3 cursor-pointer hover:bg-ink-50">
+        <input
+          type="checkbox"
+          checked={priceOnRequest}
+          onChange={(e) => setPriceOnRequest(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500"
+        />
+        <span className="text-sm">
+          <span className="font-medium text-ink-900">Price on request</span>
+          <span className="block text-xs text-ink-500 mt-0.5">
+            Hide the price and date picker. Customer sees a "Call for price" badge and is prompted to contact you for a quote.
+          </span>
+        </span>
+      </label>
 
       <Field
         name="delivery_fee"

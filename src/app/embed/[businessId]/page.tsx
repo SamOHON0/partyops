@@ -35,7 +35,7 @@ export default async function EmbedPage({
 
   const { data: business } = await supabase
     .from('businesses')
-    .select('id, name, payment_instructions, payment_link, stripe_account_id')
+    .select('id, name, email, phone, payment_instructions, payment_link, stripe_account_id')
     .eq('id', businessId)
     .maybeSingle()
 
@@ -51,7 +51,7 @@ export default async function EmbedPage({
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, description, price_per_day, image_url, quantity_available, delivery_fee, slug')
+    .select('id, name, description, price_per_day, image_url, quantity_available, delivery_fee, slug, price_on_request')
     .eq('business_id', businessId)
     .order('name')
 
@@ -124,6 +124,8 @@ export default async function EmbedPage({
     <BookingWidget
       businessId={businessId}
       businessName={business.name}
+      businessEmail={business.email ?? null}
+      businessPhone={business.phone ?? null}
       products={products ?? []}
       paymentInstructions={business.payment_instructions ?? null}
       paymentLink={business.payment_link ?? null}

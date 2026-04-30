@@ -15,15 +15,19 @@ async function updateProduct(id: string, formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) return
 
+  const priceOnRequest = formData.get('price_on_request') === 'true'
   await supabase
     .from('products')
     .update({
       name: formData.get('name') as string,
       description: (formData.get('description') as string) || null,
-      price_per_day: parseFloat(formData.get('price_per_day') as string),
+      price_per_day: priceOnRequest
+        ? 0
+        : parseFloat((formData.get('price_per_day') as string) || '0'),
       quantity_available: parseInt(formData.get('quantity_available') as string, 10),
       delivery_fee: parseFloat((formData.get('delivery_fee') as string) || '0'),
       image_url: (formData.get('image_url') as string) || null,
+      price_on_request: priceOnRequest,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

@@ -11,6 +11,7 @@ type Product = {
   quantity_available: number
   delivery_fee: number | null
   slug?: string | null
+  price_on_request?: boolean
 }
 
 type Step = 'pick' | 'details' | 'done'
@@ -18,6 +19,8 @@ type Step = 'pick' | 'details' | 'done'
 export default function BookingWidget({
   businessId,
   businessName,
+  businessEmail = null,
+  businessPhone = null,
   products,
   paymentInstructions,
   paymentLink,
@@ -26,6 +29,8 @@ export default function BookingWidget({
 }: {
   businessId: string
   businessName: string
+  businessEmail?: string | null
+  businessPhone?: string | null
   products: Product[]
   paymentInstructions: string | null
   paymentLink: string | null
@@ -372,10 +377,16 @@ export default function BookingWidget({
                           {p.description}
                         </div>
                       )}
-                      <div className="mt-2 inline-flex items-baseline gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-sm font-semibold text-brand-700">
-                        €{p.price_per_day}
-                        <span className="text-[11px] font-normal text-brand-500">/day</span>
-                      </div>
+                      {p.price_on_request ? (
+                        <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-sm font-semibold text-amber-700">
+                          Call for price
+                        </div>
+                      ) : (
+                        <div className="mt-2 inline-flex items-baseline gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-sm font-semibold text-brand-700">
+                          €{p.price_per_day}
+                          <span className="text-[11px] font-normal text-brand-500">/day</span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 )
@@ -389,7 +400,46 @@ export default function BookingWidget({
               )}
             </div>
 
-            {selected && (
+            {selected && selected.price_on_request && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-ink-900">Get a quote</h3>
+                <p className="mt-1.5 text-sm text-ink-700">
+                  This item is priced on request. Contact {businessName} for a quote and to check availability.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {businessPhone && (
+                    <a
+                      href={`tel:${businessPhone.replace(/\s+/g, '')}`}
+                      className="inline-flex items-center gap-2 rounded-xl bg-ink-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-ink-700"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Call {businessPhone}
+                    </a>
+                  )}
+                  {businessEmail && (
+                    <a
+                      href={`mailto:${businessEmail}?subject=${encodeURIComponent('Quote request: ' + selected.name)}`}
+                      className="inline-flex items-center gap-2 rounded-xl border border-ink-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink-900 transition hover:bg-ink-50"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" strokeLinecap="round" strokeLinejoin="round"/>
+                        <polyline points="22,6 12,13 2,6" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Email a quote
+                    </a>
+                  )}
+                </div>
+                {!businessPhone && !businessEmail && (
+                  <p className="mt-3 text-xs text-ink-500">
+                    Contact details for {businessName} aren't set up yet.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {selected && !selected.price_on_request && (
               <div className="rounded-2xl border border-ink-200 bg-white p-5 shadow-sm">
                 <h3 className="mb-4 text-sm font-semibold text-ink-800">When do you need it?</h3>
                 <div className="grid grid-cols-2 gap-3">
