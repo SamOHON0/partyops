@@ -6,6 +6,10 @@
  * Optional attributes:
  *   data-target="#some-element"   render inside a specific element instead of inline
  *   data-height="800"             iframe height in px (default 780)
+ *   data-item="product-slug"      pre-select this product when the widget loads.
+ *                                 Slug must match the product's `slug` column in
+ *                                 PartyOps. If the page URL has ?item=<slug>, that
+ *                                 takes precedence over this attribute.
  */
 (function () {
   'use strict';
@@ -27,8 +31,21 @@
   var height = parseInt(script.getAttribute('data-height') || '780', 10);
   var targetSelector = script.getAttribute('data-target');
 
+  // Pre-select item: prefer URL ?item=<slug>, fall back to data-item attribute.
+  var preselectSlug = null;
+  try {
+    preselectSlug = new URLSearchParams(window.location.search).get('item');
+  } catch (e) { /* old browser, ignore */ }
+  if (!preselectSlug) {
+    preselectSlug = script.getAttribute('data-item');
+  }
+
+  var iframeSrc = origin + '/embed/' + encodeURIComponent(businessId);
+  if (preselectSlug) {
+    iframeSrc += '?item=' + encodeURIComponent(preselectSlug);
+  }
   var iframe = document.createElement('iframe');
-  iframe.src = origin + '/embed/' + encodeURIComponent(businessId);
+  iframe.src = iframeSrc;
   iframe.style.width = '100%';
   iframe.style.maxWidth = '760px';
   iframe.style.height = height + 'px';

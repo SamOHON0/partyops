@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabase'
-import { getCustomers, customerKey } from '@/lib/api/customers'
+import { getCustomers } from '@/lib/api/customers'
 import { PageHeader, EmptyState } from '@/components/ui/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import {
@@ -163,10 +163,10 @@ export default async function CustomersPage({
                     .slice(0, 2)
                     .join('')
                     .toUpperCase()
-                  const href = `/admin/customers/${customerKey(c.email || `${c.name}|${c.phone || ''}`)}`
+                  const href = `/admin/customers/${c.key}`
 
                   return (
-                    <li key={c.email + c.name} className="px-4 py-3 transition hover:bg-ink-50/40 sm:grid sm:grid-cols-[1.8fr_1.6fr_0.7fr_0.9fr_0.9fr_auto] sm:items-center sm:gap-4">
+                    <li key={c.key} className="px-4 py-3 transition hover:bg-ink-50/40 sm:grid sm:grid-cols-[1.8fr_1.6fr_0.7fr_0.9fr_0.9fr_auto] sm:items-center sm:gap-4">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white">
                           {initials || 'G'}

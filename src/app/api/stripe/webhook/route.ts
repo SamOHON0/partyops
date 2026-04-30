@@ -14,15 +14,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
     }
 
-    // Verify the webhook signature (optional in test mode, required in production)
-    let event
+    // Webhook secret is ALWAYS required. Never accept unsigned events - any
+    // unauthenticated POST could otherwise mark bookings paid.
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
-    if (webhookSecret) {
-      event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
-    } else {
-      // In test mode without webhook secret, parse directly
-      event = JSON.parse(body)
+    if (!webhookSecret) {
+      console.error('STRIPE_WEBHOOK_SECRET is not set; rejecting webhook.')
+      return NextResponse.json(
+        { error: 'Webhook secret not configured' },
+        { status: 500 },
+      )
     }
+
+    const event = getStripe().webhooks.constructEvent(body, signature, webhookSecret)
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object

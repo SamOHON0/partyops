@@ -15,12 +15,24 @@ async function createBooking(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) return
 
+  const name = (formData.get('customer_name') as string) || 'Guest'
+  const phone = (formData.get('phone') as string) || ''
+  const rawEmail = (formData.get('email') as string) || ''
+  // Schema requires email NOT NULL; generate a per-customer synthetic so the
+  // CRM can distinguish email-less customers instead of merging them.
+  const slug = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 40) || 'guest'
+  const email = rawEmail || `${slug(name)}-${slug(phone)}@no-email.partyops.local`
+
   const { error } = await supabase.rpc('admin_create_booking', {
     p_business_id: user.id,
     p_product_id: formData.get('product_id') as string,
-    p_customer_name: formData.get('customer_name') as string,
-    p_email: (formData.get('email') as string) || 'manual@entry.local',
-    p_phone: (formData.get('phone') as string) || '-',
+    p_customer_name: name,
+    p_email: email,
+    p_phone: phone || '-',
     p_address: (formData.get('address') as string) || '-',
     p_start_date: formData.get('start_date') as string,
     p_end_date: formData.get('end_date') as string,
@@ -40,9 +52,21 @@ async function createBooking(formData: FormData) {
 export default async function NewBookingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{
+    error?: string
+    email?: string
+    name?: string
+    phone?: string
+    address?: string
+  }>
 }) {
-  const { error } = await searchParams
+  const {
+    error,
+    email: prefillEmail = '',
+    name: prefillName = '',
+    phone: prefillPhone = '',
+    address: prefillAddress = '',
+  } = await searchParams
   const supabase = await createServerComponentClient()
   const {
     data: { user },
@@ -135,6 +159,7 @@ export default async function NewBookingPage({
               id="customer_name"
               name="customer_name"
               required
+              defaultValue={prefillName}
               placeholder="Jane Doe"
               className="po-input"
             />
@@ -146,6 +171,7 @@ export default async function NewBookingPage({
                 type="tel"
                 id="phone"
                 name="phone"
+                defaultValue={prefillPhone}
                 placeholder="08X XXX XXXX"
                 className="po-input"
               />
@@ -155,6 +181,7 @@ export default async function NewBookingPage({
                 type="email"
                 id="email"
                 name="email"
+                defaultValue={prefillEmail}
                 placeholder="jane@example.com"
                 className="po-input"
               />
@@ -166,6 +193,7 @@ export default async function NewBookingPage({
               type="text"
               id="address"
               name="address"
+              defaultValue={prefillAddress}
               placeholder="123 Main St, Dublin"
               className="po-input"
             />

@@ -1,4 +1,3 @@
-import { createServerComponentClient } from '@/lib/supabase'
 import type {
   BookingStatus,
   BookingWithProduct,
@@ -9,11 +8,13 @@ import { getBookings } from '@/lib/api/bookings'
 export type CustomerRecord = CustomerSummary & {
   address: string | null
   bookings: BookingWithProduct[]
+  /** Stable URL-safe identifier (email-based when possible, else name+phone). */
+  key: string
 }
 
 /**
- * Derive a customer list from bookings, aggregated by email.
- * Bookings missing an email fall back to name+phone as a synthetic key.
+ * Derive a customer list from bookings, aggregated by email (with a fallback
+ * synthetic key for email-less bookings).
  */
 export async function getCustomers(businessId: string): Promise<CustomerRecord[]> {
   const bookings = await getBookings(businessId)
@@ -25,21 +26,27 @@ export async function getCustomerByKey(
   key: string,
 ): Promise<CustomerRecord | null> {
   const customers = await getCustomers(businessId)
-  return customers.find((c) => customerKey(c.email) === key) || null
+  return customers.find((c) => c.key === key) || null
 }
 
-export function customerKey(email: string): string {
-  return encodeURIComponent(email.toLowerCase())
+/** Build a URL-safe customer key. Prefers email; falls back to name|phone. */
+export function customerKey(email: string | null, name?: string, phone?: string | null): string {
+  if (email && email.trim()) {
+    return encodeURIComponent(email.trim().toLowerCase())
+  }
+  const fallback = `${(name || '').trim()}|${(phone || '').trim()}`.toLowerCase()
+  return encodeURIComponent(`anon:${fallback}`)
 }
 
 function aggregateCustomers(bookings: BookingWithProduct[]): CustomerRecord[] {
   const map = new Map<string, CustomerRecord>()
 
   for (const b of bookings) {
-    const emailKey = (b.email || `${b.customer_name}|${b.phone || ''}`).trim().toLowerCase()
-    if (!emailKey) continue
+    const hasEmail = !!(b.email && b.email.trim())
+    const key = customerKey(b.email, b.customer_name, b.phone)
+    if (!key) continue
 
-    const existing = map.get(emailKey)
+    const existing = map.get(key)
     const price = Number(b.total_price || 0)
     const status = b.status as BookingStatus
 
@@ -60,8 +67,9 @@ function aggregateCustomers(bookings: BookingWithProduct[]): CustomerRecord[] {
         cancelled: 0,
       }
       statuses[status] = 1
-      map.set(emailKey, {
-        email: b.email || '',
+      map.set(key, {
+        key,
+        email: hasEmail ? b.email! : '',
         name: b.customer_name,
         phone: b.phone && b.phone !== '-' ? b.phone : null,
         address: b.address && b.address !== '-' ? b.address : null,

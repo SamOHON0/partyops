@@ -25,12 +25,22 @@ function getGreeting() {
   return 'Good evening'
 }
 
+// Format a local Date as YYYY-MM-DD. Using toISOString() here would convert
+// to UTC and can shift the day on month boundaries when the server TZ is
+// behind UTC, causing stats to miss bookings at the edges.
+function ymdLocal(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function computeStats(bookings: BookingWithProduct[]) {
   const now = new Date()
-  const today = now.toISOString().slice(0, 10)
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10)
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10)
-  const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10)
+  const today = ymdLocal(now)
+  const thisMonthStart = ymdLocal(new Date(now.getFullYear(), now.getMonth(), 1))
+  const lastMonthStart = ymdLocal(new Date(now.getFullYear(), now.getMonth() - 1, 1))
+  const lastMonthEnd = ymdLocal(new Date(now.getFullYear(), now.getMonth(), 0))
 
   const counted = bookings.filter((b) => b.status !== 'cancelled')
   const pending = bookings.filter((b) => b.status === 'pending')
@@ -67,8 +77,8 @@ function computeStats(bookings: BookingWithProduct[]) {
   const monthly: { label: string; count: number; revenue: number }[] = []
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const start = d.toISOString().slice(0, 10)
-    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().slice(0, 10)
+    const start = ymdLocal(d)
+    const end = ymdLocal(new Date(d.getFullYear(), d.getMonth() + 1, 0))
     const slice = counted.filter(
       (b) => b.created_at.slice(0, 10) >= start && b.created_at.slice(0, 10) <= end,
     )

@@ -20,6 +20,14 @@ function ymd(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+// Parse a YYYY-MM-DD string into a local-midnight Date. Using `new Date("YYYY-MM-DD")`
+// treats the string as UTC, which can shift to the previous day when rendered in
+// a westerly timezone. Always construct from the parsed integer parts instead.
+function parseYMD(s: string): Date {
+  const [y, m, d] = s.split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1)
+}
+
 function parseMonth(s?: string): { year: number; month: number } {
   const now = new Date()
   if (!s) return { year: now.getFullYear(), month: now.getMonth() }
@@ -88,15 +96,16 @@ export default async function CalendarPage({
 
   const bookings = await getBookings(user.id)
 
-  // Index bookings by date (expand multi-day spans)
+  // Index bookings by date (expand multi-day spans). Parse ISO dates as
+  // local-midnight to avoid UTC shift errors.
   const byDate = new Map<string, BookingWithProduct[]>()
   for (const b of bookings) {
     if (!b.start_date || !b.end_date) continue
-    const s = new Date(b.start_date)
-    const e = new Date(b.end_date)
+    const s = parseYMD(b.start_date)
+    const e = parseYMD(b.end_date)
     for (
       let d = new Date(s.getFullYear(), s.getMonth(), s.getDate());
-      d.getTime() <= new Date(e.getFullYear(), e.getMonth(), e.getDate()).getTime();
+      d.getTime() <= e.getTime();
       d.setDate(d.getDate() + 1)
     ) {
       const key = ymd(d)

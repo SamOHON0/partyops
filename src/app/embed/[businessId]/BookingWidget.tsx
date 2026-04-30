@@ -10,6 +10,7 @@ type Product = {
   image_url: string | null
   quantity_available: number
   delivery_fee: number | null
+  slug?: string | null
 }
 
 type Step = 'pick' | 'details' | 'done'
@@ -21,6 +22,7 @@ export default function BookingWidget({
   paymentInstructions,
   paymentLink,
   stripeEnabled = false,
+  preselectProductId = null,
 }: {
   businessId: string
   businessName: string
@@ -28,9 +30,18 @@ export default function BookingWidget({
   paymentInstructions: string | null
   paymentLink: string | null
   stripeEnabled?: boolean
+  preselectProductId?: string | null
 }) {
+  // If the embed page resolved ?item=<slug> to a real product, start with it
+  // selected. Customer still sees the picker grid but their chosen item is
+  // highlighted and ready to confirm.
+  const initialSelected = useMemo(
+    () => products.find((p) => p.id === preselectProductId) ?? null,
+    [preselectProductId, products],
+  )
+
   const [step, setStep] = useState<Step>('pick')
-  const [selected, setSelected] = useState<Product | null>(null)
+  const [selected, setSelected] = useState<Product | null>(initialSelected)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [availability, setAvailability] = useState<{
@@ -44,6 +55,7 @@ export default function BookingWidget({
   const [error, setError] = useState<string | null>(null)
   const [bookingId, setBookingId] = useState<string | null>(null)
   const [loadingPayment, setLoadingPayment] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
   const days = useMemo(() => {
@@ -71,6 +83,7 @@ export default function BookingWidget({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        business_id: businessId,
         product_id: selected.id,
         start_date: startDate,
         end_date: endDate,
@@ -111,6 +124,10 @@ export default function BookingWidget({
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!selected) return
+    if (!startDate || !endDate || endDate < startDate) {
+      setError('Please pick a valid start and end date.')
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -223,6 +240,7 @@ export default function BookingWidget({
                 <button
                   onClick={async () => {
                     setLoadingPayment(true)
+                    setPaymentError(null)
                     try {
                       const res = await fetch('/api/stripe/checkout', {
                         method: 'POST',
@@ -230,15 +248,22 @@ export default function BookingWidget({
                         body: JSON.stringify({ booking_id: bookingId }),
                       })
                       const data = await res.json()
+                      if (!res.ok) {
+                        throw new Error(data?.error || 'Could not start payment')
+                      }
                       if (data.url) {
                         if (window.top !== window.self) {
                           window.open(data.url, '_blank')
                         } else {
                           window.location.href = data.url
                         }
+                      } else {
+                        throw new Error('No checkout URL returned')
                       }
-                    } catch {
-                      /* ignore */
+                    } catch (err: unknown) {
+                      setPaymentError(
+                        err instanceof Error ? err.message : 'Could not start payment',
+                      )
                     } finally {
                       setLoadingPayment(false)
                     }
@@ -248,6 +273,9 @@ export default function BookingWidget({
                 >
                   {loadingPayment ? 'Loading...' : 'Pay with card'}
                 </button>
+                {paymentError && (
+                  <p className="mt-2 text-center text-xs text-rose-600">{paymentError}</p>
+                )}
                 <p className="mt-2 text-center text-[10px] text-ink-400">
                   Secure payment via Stripe
                 </p>
@@ -373,7 +401,12 @@ export default function BookingWidget({
                       type="date"
                       min={today}
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        setStartDate(v)
+                        // Keep end_date >= start_date automatically
+                        if (endDate && v && endDate < v) setEndDate(v)
+                      }}
                       className="mt-1.5 block w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                     />
                   </label>

@@ -1,17 +1,36 @@
 import { createAdminClient } from '@/lib/supabase'
+import { getStripe } from '@/lib/stripe'
 import BookingWidget from './BookingWidget'
 
 export const dynamic = 'force-dynamic'
+
+/**
+ * A Stripe Connect account can exist (stripe_account_id is set) without being
+ * able to accept payments yet - the operator may not have finished onboarding,
+ * or Stripe may be holding charges for verification. We must not show "Pay
+ * with card" until `charges_enabled: true`.
+ */
+async function stripeCanAcceptCharges(accountId: string | null): Promise<boolean> {
+  if (!accountId) return false
+  if (!process.env.STRIPE_SECRET_KEY) return false
+  try {
+    const account = await getStripe().accounts.retrieve(accountId)
+    return account.charges_enabled === true
+  } catch (err) {
+    console.error('stripeCanAcceptCharges failed:', err)
+    return false
+  }
+}
 
 export default async function EmbedPage({
   params,
   searchParams,
 }: {
   params: Promise<{ businessId: string }>
-  searchParams: Promise<{ payment?: string }>
+  searchParams: Promise<{ payment?: string; item?: string }>
 }) {
   const { businessId } = await params
-  const { payment } = await searchParams
+  const { payment, item: preselectSlug } = await searchParams
   const supabase = createAdminClient()
 
   const { data: business } = await supabase
@@ -32,9 +51,17 @@ export default async function EmbedPage({
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, description, price_per_day, image_url, quantity_available, delivery_fee')
+    .select('id, name, description, price_per_day, image_url, quantity_available, delivery_fee, slug')
     .eq('business_id', businessId)
     .order('name')
+
+  // Resolve ?item=<slug> to a product id so the widget can pre-select it.
+  // Slug lookup is scoped to this business (unique index on business_id+slug).
+  let preselectProductId: string | null = null
+  if (preselectSlug && products) {
+    const match = products.find((p) => p.slug === preselectSlug)
+    if (match) preselectProductId = match.id
+  }
 
   // Show payment confirmation page
   if (payment === 'success') {
@@ -91,6 +118,8 @@ export default async function EmbedPage({
     )
   }
 
+  const stripeEnabled = await stripeCanAcceptCharges(business.stripe_account_id ?? null)
+
   return (
     <BookingWidget
       businessId={businessId}
@@ -98,7 +127,8 @@ export default async function EmbedPage({
       products={products ?? []}
       paymentInstructions={business.payment_instructions ?? null}
       paymentLink={business.payment_link ?? null}
-      stripeEnabled={!!business.stripe_account_id}
+      stripeEnabled={stripeEnabled}
+      preselectProductId={preselectProductId}
     />
   )
 }

@@ -19,12 +19,21 @@ export async function POST() {
 
     let accountId = business?.stripe_account_id
 
-    // Create a new Stripe Connect account if they don't have one
+    // Create a new Stripe Connect account if they don't have one.
+    // Express is the right fit for a managed SaaS platform like PartyOps:
+    // faster onboarding, platform-controlled branding, and full support for
+    // destination charges with application_fee_amount (which is how we take
+    // our 5% platform cut).
     if (!accountId) {
       const account = await stripe.accounts.create({
-        type: 'standard',
+        type: 'express',
         country: 'IE',
+        email: user.email || undefined,
         business_type: 'individual',
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
         metadata: { business_id: user.id },
       })
       accountId = account.id

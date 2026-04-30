@@ -132,7 +132,7 @@ export default async function CustomerDetail({ params }: PageProps) {
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Link
-                href={`/admin/bookings/new?email=${encodeURIComponent(customer.email || '')}&name=${encodeURIComponent(customer.name || '')}`}
+                href={`/admin/bookings/new?email=${encodeURIComponent(customer.email || '')}&name=${encodeURIComponent(customer.name || '')}&phone=${encodeURIComponent(customer.phone || '')}&address=${encodeURIComponent(customer.address || '')}`}
                 className="po-btn po-btn-primary text-xs"
               >
                 <PlusIcon size={14} />

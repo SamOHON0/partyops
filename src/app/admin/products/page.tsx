@@ -23,11 +23,32 @@ async function deleteProduct(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) return
 
+  // Block deletion when bookings exist so we don't cascade and lose history.
+  // Operators can archive an item via edit -> quantity 0 instead.
+  const { count } = await supabase
+    .from('bookings')
+    .select('id', { count: 'exact', head: true })
+    .eq('business_id', user.id)
+    .eq('product_id', id)
+
+  if ((count ?? 0) > 0) {
+    redirect(
+      `/admin/products?error=${encodeURIComponent(
+        'Cannot delete an item with existing bookings. Set its quantity to 0 to hide it instead.',
+      )}`,
+    )
+  }
+
   await supabase.from('products').delete().eq('id', id).eq('business_id', user.id)
   revalidatePath('/admin/products')
 }
 
-export default async function AdminProducts() {
+export default async function AdminProducts({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>
+}) {
+  const { error } = await searchParams
   const supabase = await createServerComponentClient()
   const {
     data: { user },
@@ -48,6 +69,12 @@ export default async function AdminProducts() {
           </Link>
         }
       />
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
 
       {products.length === 0 ? (
         <EmptyState
