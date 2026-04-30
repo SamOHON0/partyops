@@ -44,7 +44,9 @@ export default function NewProduct() {
         business_id: user.id,
         name: formData.name,
         description: formData.description || null,
-        price_per_day: formData.price_on_request ? 0 : parseFloat(formData.price_per_day),
+        // Store the entered price even if price_on_request is on; customer-facing
+        // widgets read the boolean and hide price/booking when true.
+        price_per_day: parseFloat(formData.price_per_day || '0'),
         quantity_available: parseInt(formData.quantity_available),
         delivery_fee: parseFloat(formData.delivery_fee || '0'),
         setup_time_buffer: 0,
@@ -129,13 +131,13 @@ export default function NewProduct() {
               name="price_per_day"
               id="price_per_day"
               required={!formData.price_on_request}
-              disabled={formData.price_on_request}
+              readOnly={formData.price_on_request}
               min="0"
               step="0.01"
               value={formData.price_per_day}
               onChange={handleChange}
-              placeholder="120"
-              className="po-input disabled:cursor-not-allowed disabled:opacity-50"
+              placeholder={formData.price_on_request ? 'Quote only' : '120'}
+              className="po-input read-only:cursor-not-allowed read-only:opacity-50 read-only:bg-ink-100"
             />
           </Field>
           <Field

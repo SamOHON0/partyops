@@ -43,12 +43,19 @@ export async function POST(request: NextRequest) {
 
     const { data: product, error: productErr } = await supabase
       .from('products')
-      .select('id')
+      .select('id, price_on_request')
       .eq('id', body.product_id)
       .eq('business_id', body.business_id)
       .maybeSingle()
     if (productErr) throw productErr
     if (!product) return withCors({ error: 'product not found for business' }, 404, request)
+    if (product.price_on_request) {
+      return withCors(
+        { error: 'This item requires a quote. Please contact the business directly.' },
+        400,
+        request,
+      )
+    }
 
     const { data, error } = await supabase.rpc('create_booking_atomic', {
       p_business_id: body.business_id,

@@ -60,9 +60,10 @@ export default function EditProductForm({
             type="number"
             step="0.01"
             required={!priceOnRequest}
-            disabled={priceOnRequest}
+            readOnly={priceOnRequest}
             defaultValue={String(product.price_per_day)}
-            className="po-input disabled:cursor-not-allowed disabled:opacity-50"
+            placeholder={priceOnRequest ? 'Quote only' : ''}
+            className="po-input read-only:cursor-not-allowed read-only:opacity-50 read-only:bg-ink-100"
           />
         </div>
         <Field

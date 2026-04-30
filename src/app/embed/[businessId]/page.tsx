@@ -120,12 +120,17 @@ export default async function EmbedPage({
 
   const stripeEnabled = await stripeCanAcceptCharges(business.stripe_account_id ?? null)
 
+  // Only expose contact details to the public iframe if there's a price-on-request
+  // item that would actually need them. Avoids leaking phone/email for businesses
+  // that don't have any quote-only inventory.
+  const hasQuoteOnlyItem = (products ?? []).some((p) => p.price_on_request)
+
   return (
     <BookingWidget
       businessId={businessId}
       businessName={business.name}
-      businessEmail={business.email ?? null}
-      businessPhone={business.phone ?? null}
+      businessEmail={hasQuoteOnlyItem ? business.email ?? null : null}
+      businessPhone={hasQuoteOnlyItem ? business.phone ?? null : null}
       products={products ?? []}
       paymentInstructions={business.payment_instructions ?? null}
       paymentLink={business.payment_link ?? null}
