@@ -27,15 +27,15 @@ export default async function EmbedPage({
   searchParams,
 }: {
   params: Promise<{ businessId: string }>
-  searchParams: Promise<{ payment?: string; item?: string }>
+  searchParams: Promise<{ payment?: string; item?: string; booking_id?: string }>
 }) {
   const { businessId } = await params
-  const { payment, item: preselectSlug } = await searchParams
+  const { payment, item: preselectSlug, booking_id: successBookingId } = await searchParams
   const supabase = createAdminClient()
 
   const { data: business } = await supabase
     .from('businesses')
-    .select('id, name, email, phone, payment_instructions, payment_link, stripe_account_id')
+    .select('id, name, email, phone, payment_instructions, payment_link, stripe_account_id, deposit_percentage')
     .eq('id', businessId)
     .maybeSingle()
 
@@ -65,6 +65,17 @@ export default async function EmbedPage({
 
   // Show payment confirmation page
   if (payment === 'success') {
+    let depositInfo: { deposit: number; balance: number } | null = null
+    if (successBookingId) {
+      const { data: b } = await supabase
+        .from('bookings')
+        .select('deposit_amount, balance_amount')
+        .eq('id', successBookingId)
+        .maybeSingle()
+      if (b && Number(b.balance_amount) > 0) {
+        depositInfo = { deposit: Number(b.deposit_amount), balance: Number(b.balance_amount) }
+      }
+    }
     return (
       <div className="min-h-screen bg-white font-sans antialiased text-ink-900">
         <div className="mx-auto max-w-xl px-4 py-16 sm:px-6">
@@ -74,13 +85,32 @@ export default async function EmbedPage({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-ink-900">Payment received</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-ink-900">
+              {depositInfo ? 'Deposit received' : 'Payment received'}
+            </h1>
             <p className="mx-auto mt-2 max-w-sm text-sm text-ink-600">
               Thanks for your booking. {business.name} will be in touch shortly to confirm the details.
             </p>
+            {depositInfo && (
+              <div className="mx-auto mt-5 max-w-sm rounded-xl border border-ink-200 bg-ink-50 p-4 text-left text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-ink-600">Deposit paid</span>
+                  <span className="font-semibold text-emerald-700">€{depositInfo.deposit.toFixed(2)}</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <span className="text-ink-600">Balance owed to {business.name}</span>
+                  <span className="font-semibold text-ink-900">€{depositInfo.balance.toFixed(2)}</span>
+                </div>
+                <p className="mt-2.5 text-[11px] leading-relaxed text-ink-500">
+                  The remaining balance is payable directly to {business.name}. They&apos;ll be in touch about how you&apos;d like to settle it (cash on the day, bank transfer, etc.).
+                </p>
+              </div>
+            )}
             <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <span className="text-xs font-medium text-emerald-700">Payment confirmed</span>
+              <span className="text-xs font-medium text-emerald-700">
+                {depositInfo ? 'Deposit confirmed' : 'Payment confirmed'}
+              </span>
             </div>
             <p className="mt-6 text-xs text-ink-500">
               A confirmation has been sent to your email. You can close this page.
@@ -136,6 +166,7 @@ export default async function EmbedPage({
       paymentLink={business.payment_link ?? null}
       stripeEnabled={stripeEnabled}
       preselectProductId={preselectProductId}
+      depositPercentage={business.deposit_percentage ?? 0}
     />
   )
 }

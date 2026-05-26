@@ -26,6 +26,7 @@ export default function BookingWidget({
   paymentLink,
   stripeEnabled = false,
   preselectProductId = null,
+  depositPercentage = 0,
 }: {
   businessId: string
   businessName: string
@@ -36,6 +37,7 @@ export default function BookingWidget({
   paymentLink: string | null
   stripeEnabled?: boolean
   preselectProductId?: string | null
+  depositPercentage?: number
 }) {
   // If the embed page resolved ?item=<slug> to a real product, start with it
   // selected. Customer still sees the picker grid but their chosen item is
@@ -75,10 +77,20 @@ export default function BookingWidget({
       ) + 1,
     )
   }, [startDate, endDate])
+  const depositPctClamped = Math.max(0, Math.min(100, depositPercentage || 0))
+  const isDepositMode = depositPctClamped > 0 && depositPctClamped < 100 && stripeEnabled
   const total = useMemo(() => {
     if (!selected || days <= 0) return 0
     return selected.price_per_day * days + (selected.delivery_fee || 0)
   }, [selected, days])
+  const depositAmount = useMemo(
+    () => (isDepositMode ? Math.round(total * (depositPctClamped / 100) * 100) / 100 : total),
+    [total, depositPctClamped, isDepositMode],
+  )
+  const balanceAmount = useMemo(
+    () => (isDepositMode ? Math.round((total - depositAmount) * 100) / 100 : 0),
+    [total, depositAmount, isDepositMode],
+  )
 
   useEffect(() => {
     if (!selected || !startDate || !endDate) {
@@ -279,7 +291,11 @@ export default function BookingWidget({
                   disabled={loadingPayment}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {loadingPayment ? 'Loading...' : 'Pay with card'}
+                  {loadingPayment
+                    ? 'Loading...'
+                    : isDepositMode
+                      ? `Pay €${depositAmount.toFixed(2)} deposit`
+                      : 'Pay with card'}
                 </button>
                 {paymentError && (
                   <p className="mt-2 text-center text-xs text-rose-600">{paymentError}</p>
@@ -575,20 +591,37 @@ export default function BookingWidget({
                       Checking...
                     </div>
                   ) : availability.available ? (
-                    <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                      <div className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Available
-                      </div>
-                      <div className="text-right">
-                        <div className="text-base font-semibold text-ink-900">
-                          €{total.toFixed(2)}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          Available
                         </div>
-                        <div className="text-[10px] text-ink-500">
-                          {days} day{days !== 1 ? 's' : ''}
-                          {selected.delivery_fee ? ' incl. delivery' : ''}
+                        <div className="text-right">
+                          <div className="text-base font-semibold text-ink-900">
+                            €{total.toFixed(2)}
+                          </div>
+                          <div className="text-[10px] text-ink-500">
+                            {days} day{days !== 1 ? 's' : ''}
+                            {selected.delivery_fee ? ' incl. delivery' : ''}
+                          </div>
                         </div>
                       </div>
+                      {isDepositMode && (
+                        <div className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-xs text-ink-700">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="font-semibold text-ink-900">Pay today (deposit):</span>
+                            <span className="text-base font-bold text-brand-700">€{depositAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-ink-600">
+                            <span>Balance to settle directly with {businessName}:</span>
+                            <span className="font-semibold">€{balanceAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="mt-2 text-[11px] text-ink-500 leading-relaxed">
+                            Pay the {depositPctClamped}% deposit online now to confirm your booking. The remaining €{balanceAmount.toFixed(2)} is payable directly to {businessName} (cash, transfer, or however you arrange together).
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
@@ -650,6 +683,18 @@ export default function BookingWidget({
                   <div className="text-[10px] text-ink-400">total</div>
                 </div>
               </div>
+              {isDepositMode && (
+                <div className="mt-3 pt-3 border-t border-ink-100 text-xs text-ink-700">
+                  <div className="flex items-center justify-between gap-2">
+                    <span>Pay now ({depositPctClamped}% deposit)</span>
+                    <span className="font-semibold text-ink-900">€{depositAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 text-ink-500">
+                    <span>Balance owed to {businessName}</span>
+                    <span>€{balanceAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3 rounded-2xl border border-ink-200 bg-white p-5 shadow-sm">

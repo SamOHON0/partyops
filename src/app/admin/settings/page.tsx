@@ -16,6 +16,10 @@ async function saveSettings(formData: FormData) {
   } = await supabase.auth.getUser()
   if (!user) return
 
+  // Clamp deposit_percentage to 0-100
+  const depositRaw = parseInt((formData.get('deposit_percentage') as string) || '0', 10)
+  const depositPct = Number.isFinite(depositRaw) ? Math.max(0, Math.min(100, depositRaw)) : 0
+
   await supabase
     .from('businesses')
     .update({
@@ -24,6 +28,7 @@ async function saveSettings(formData: FormData) {
       address: (formData.get('address') as string) || null,
       payment_instructions: (formData.get('payment_instructions') as string) || null,
       payment_link: (formData.get('payment_link') as string) || null,
+      deposit_percentage: depositPct,
       updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
@@ -168,6 +173,29 @@ export default async function SettingsPage({
             connected={!!business.stripe_account_id}
             accountId={business.stripe_account_id}
           />
+
+          <div className="mt-5 border-t border-ink-100 pt-5">
+            <label htmlFor="deposit_percentage" className="mb-1.5 block text-xs font-medium text-ink-700">
+              Deposit percentage
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                id="deposit_percentage"
+                name="deposit_percentage"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                defaultValue={String(business.deposit_percentage ?? 0)}
+                className="po-input"
+                style={{ maxWidth: '120px' }}
+              />
+              <span className="text-sm text-ink-600">%</span>
+            </div>
+            <p className="mt-1.5 text-[11px] text-ink-500">
+              Set to 0 to charge the full amount on booking (default). Set to e.g. 30 to charge a 30% deposit at booking and collect the remaining balance directly from the customer (cash, transfer, or however you prefer). The widget shows the customer the breakdown clearly.
+            </p>
+          </div>
         </section>
 
         <div className="flex items-center justify-end gap-2 border-t border-ink-100 pt-4">

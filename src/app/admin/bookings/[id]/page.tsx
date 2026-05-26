@@ -71,6 +71,30 @@ async function updatePayment(formData: FormData) {
   revalidatePath(`/admin/bookings/${id}`)
 }
 
+async function updateBalance(formData: FormData) {
+  'use server'
+  const id = formData.get('id') as string
+  const markPaid = formData.get('mark_paid') === 'true'
+
+  const supabase = await createServerComponentClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase
+    .from('bookings')
+    .update({
+      balance_paid_at: markPaid ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('business_id', user.id)
+
+  revalidatePath('/admin/bookings')
+  revalidatePath(`/admin/bookings/${id}`)
+}
+
 async function removeBooking(formData: FormData) {
   'use server'
   const id = formData.get('id') as string
@@ -320,6 +344,21 @@ export default async function BookingDetail({ params }: PageProps) {
                 <span>Total</span>
                 <span>{fmtCurrencyFull(Number(booking.total_price || 0))}</span>
               </div>
+              {Number(booking.balance_amount || 0) > 0 && (
+                <div className="mt-3 rounded-lg border border-ink-200 bg-ink-50/60 p-3 text-xs">
+                  <div className="flex items-center justify-between text-ink-700">
+                    <span>Deposit paid online</span>
+                    <span className="font-semibold text-emerald-700">{fmtCurrencyFull(Number(booking.deposit_amount || 0))}</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-ink-700">
+                    <span>Balance owed by customer</span>
+                    <span className={`font-semibold ${booking.balance_paid_at ? 'text-emerald-700' : 'text-amber-700'}`}>
+                      {fmtCurrencyFull(Number(booking.balance_amount || 0))}
+                      {booking.balance_paid_at ? ' (paid)' : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -339,6 +378,25 @@ export default async function BookingDetail({ params }: PageProps) {
                   <input type="hidden" name="payment_status" value="unpaid" />
                   <button type="submit" className="po-btn po-btn-ghost w-full text-xs">
                     Mark as unpaid
+                  </button>
+                </form>
+              )}
+              {Number(booking.balance_amount || 0) > 0 && !booking.balance_paid_at && (
+                <form action={updateBalance} className="w-full">
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="mark_paid" value="true" />
+                  <button type="submit" className="po-btn po-btn-secondary w-full text-xs">
+                    <EuroIcon size={14} />
+                    Mark balance as paid
+                  </button>
+                </form>
+              )}
+              {Number(booking.balance_amount || 0) > 0 && booking.balance_paid_at && (
+                <form action={updateBalance} className="w-full">
+                  <input type="hidden" name="id" value={booking.id} />
+                  <input type="hidden" name="mark_paid" value="false" />
+                  <button type="submit" className="po-btn po-btn-ghost w-full text-xs">
+                    Mark balance as unpaid
                   </button>
                 </form>
               )}

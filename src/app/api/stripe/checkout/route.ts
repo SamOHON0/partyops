@@ -38,10 +38,10 @@ export async function POST(request: NextRequest) {
       .eq('id', booking.product_id)
       .single()
 
-    // Get the business stripe account
+    // Get the business stripe account + deposit configuration
     const { data: business } = await supabase
       .from('businesses')
-      .select('stripe_account_id')
+      .select('stripe_account_id, deposit_percentage')
       .eq('id', booking.business_id)
       .single()
 
@@ -50,10 +50,29 @@ export async function POST(request: NextRequest) {
       return withCors({ error: 'This business has not set up Stripe payments yet' }, 400, request)
     }
 
-    const totalInCents = Math.round(booking.total_price * 100)
-    const platformFee = Math.round(totalInCents * PLATFORM_FEE_PERCENT)
+    // If a deposit percentage is configured, only charge that portion now.
+    // The balance is collected offline by the business.
+    const depositPct = Math.max(0, Math.min(100, business?.deposit_percentage ?? 0))
+    const isDeposit = depositPct > 0 && depositPct < 100
+
+    const totalCents = Math.round(booking.total_price * 100)
+    const chargeCents = isDeposit
+      ? Math.round(totalCents * (depositPct / 100))
+      : totalCents
+    const platformFee = Math.round(chargeCents * PLATFORM_FEE_PERCENT)
+
+    const depositAmount = chargeCents / 100
+    const balanceAmount = (totalCents - chargeCents) / 100
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://rental-booking-eight.vercel.app'
+
+    const lineItemName = isDeposit
+      ? `${product?.name || 'Booking'} - ${depositPct}% deposit`
+      : `${product?.name || 'Booking'} rental`
+
+    const lineItemDescription = isDeposit
+      ? `${booking.start_date} to ${booking.end_date} - balance of €${balanceAmount.toFixed(2)} payable directly to the business`
+      : `${booking.start_date} to ${booking.end_date}`
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -62,10 +81,10 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: `${product?.name || 'Booking'} rental`,
-              description: `${booking.start_date} to ${booking.end_date}`,
+              name: lineItemName,
+              description: lineItemDescription,
             },
-            unit_amount: totalInCents,
+            unit_amount: chargeCents,
           },
           quantity: 1,
         },
@@ -79,15 +98,22 @@ export async function POST(request: NextRequest) {
       metadata: {
         booking_id: booking.id,
         business_id: booking.business_id,
+        deposit_percentage: String(depositPct),
+        deposit_amount_eur: depositAmount.toFixed(2),
+        balance_amount_eur: balanceAmount.toFixed(2),
       },
       success_url: `${appUrl}/embed/${booking.business_id}?payment=success&booking_id=${booking.id}`,
       cancel_url: `${appUrl}/embed/${booking.business_id}?payment=cancelled`,
     })
 
-    // Save the session ID on the booking
+    // Save the session ID + deposit/balance breakdown on the booking
     await supabase
       .from('bookings')
-      .update({ stripe_session_id: session.id })
+      .update({
+        stripe_session_id: session.id,
+        deposit_amount: depositAmount,
+        balance_amount: balanceAmount,
+      })
       .eq('id', booking_id)
 
     return withCors({ url: session.url }, 200, request)

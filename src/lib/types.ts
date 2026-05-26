@@ -43,6 +43,13 @@ export interface Booking {
   payment_status?: PaymentStatus | null
   stripe_session_id?: string | null
   total_price: number
+  // Deposit support (migration 011). When the business has a deposit_percentage > 0,
+  // deposit_amount is what Stripe charged and balance_amount is what's still owed to
+  // the business directly. balance_paid_at is set when the owner confirms the balance
+  // was settled offline (cash, transfer, etc.).
+  deposit_amount?: number | null
+  balance_amount?: number | null
+  balance_paid_at?: string | null
   created_at: string
   updated_at: string
 }
