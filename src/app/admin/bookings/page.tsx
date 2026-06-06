@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabase'
 import { getBookings } from '@/lib/api/bookings'
 import { PageHeader, EmptyState } from '@/components/ui/PageHeader'
-import { StatusBadge, Badge } from '@/components/ui/Badge'
+import { StatusBadge, PaymentBadge, paymentState } from '@/components/ui/Badge'
 import {
   BookingsIcon,
   PlusIcon,
@@ -67,7 +67,7 @@ export default async function AdminBookings({
 
   const filtered = bookings.filter((b) => {
     if (statusFilter && b.status !== statusFilter) return false
-    if (paymentFilter && (b.payment_status || 'unpaid') !== paymentFilter) return false
+    if (paymentFilter && paymentState(b) !== paymentFilter) return false
     if (query) {
       const hay = [
         b.customer_name,
@@ -183,6 +183,7 @@ export default async function AdminBookings({
             {[
               { label: 'Any', value: '' },
               { label: 'Paid', value: 'paid' },
+              { label: 'Deposit paid', value: 'deposit' },
               { label: 'Unpaid', value: 'unpaid' },
               { label: 'Refunded', value: 'refunded' },
             ].map((p) => {
@@ -307,13 +308,7 @@ function BookingRow({
           {fmtCurrency(Number(booking.total_price || 0))}
         </div>
         <div className="sm:mt-0.5">
-          {booking.payment_status && booking.payment_status !== 'unpaid' ? (
-            <Badge tone={booking.payment_status === 'paid' ? 'success' : 'neutral'}>
-              {booking.payment_status === 'paid' ? 'Paid' : 'Refunded'}
-            </Badge>
-          ) : (
-            <span className="text-[10px] text-ink-400">Unpaid</span>
-          )}
+          <PaymentBadge booking={booking} />
         </div>
       </div>
 

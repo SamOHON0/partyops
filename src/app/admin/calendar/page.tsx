@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabase'
 import { getBookings } from '@/lib/api/bookings'
 import { PageHeader, EmptyState } from '@/components/ui/PageHeader'
-import { Badge, StatusBadge } from '@/components/ui/Badge'
+import { PaymentBadge, StatusBadge } from '@/components/ui/Badge'
 import { CalendarIcon, ChevronDownIcon, PlusIcon } from '@/components/ui/Icon'
 import { fmtCurrency, fmtDateMedium } from '@/lib/format'
 import type { BookingStatus, BookingWithProduct } from '@/lib/types'
@@ -364,13 +364,9 @@ function UpcomingList({
               <div className="text-sm font-semibold text-ink-900">
                 {fmtCurrency(Number(b.total_price || 0))}
               </div>
-              {b.payment_status && (
-                <div className="mt-0.5">
-                  <Badge tone={b.payment_status === 'paid' ? 'success' : 'warning'}>
-                    {b.payment_status === 'paid' ? 'Paid' : 'Unpaid'}
-                  </Badge>
-                </div>
-              )}
+              <div className="mt-0.5">
+                <PaymentBadge booking={b} />
+              </div>
             </div>
           </Link>
         ))}

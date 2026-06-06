@@ -1,6 +1,13 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { corsPreflight, withCors } from '@/lib/cors'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+
+// Public, unauthenticated write endpoint - keep a per-IP cap so a script can't
+// flood pending bookings (which also exhaust availability). Tuned to comfortably
+// allow a real customer booking a few items in one sitting.
+const BOOKING_LIMIT = 6
+const BOOKING_WINDOW_SECONDS = 600
 
 export async function OPTIONS(request: NextRequest) {
   return corsPreflight(request)
@@ -8,6 +15,16 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const allowed = await checkRateLimit(`bookings:${ip}`, BOOKING_LIMIT, BOOKING_WINDOW_SECONDS)
+    if (!allowed) {
+      return withCors(
+        { error: 'Too many booking attempts. Please try again in a few minutes.' },
+        { status: 429, headers: { 'Retry-After': String(BOOKING_WINDOW_SECONDS) } },
+        request,
+      )
+    }
+
     const body = await request.json()
     const required = ['business_id', 'product_id', 'customer_name', 'email', 'phone', 'address', 'start_date', 'end_date']
     for (const field of required) {

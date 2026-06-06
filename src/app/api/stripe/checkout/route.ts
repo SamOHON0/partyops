@@ -2,20 +2,39 @@ import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
 import { getStripe, PLATFORM_FEE_PERCENT } from '@/lib/stripe'
 import { corsPreflight, withCors } from '@/lib/cors'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+
+// Checkout is only ever called same-origin from the embed iframe, so lock CORS
+// to the app origin rather than reflecting any caller. Creating Stripe sessions
+// should never be cross-origin callable.
+const SAME_ORIGIN = { sameOriginOnly: true } as const
+const CHECKOUT_LIMIT = 12
+const CHECKOUT_WINDOW_SECONDS = 600
 
 export async function OPTIONS(request: NextRequest) {
-  return corsPreflight(request)
+  return corsPreflight(request, SAME_ORIGIN)
 }
 
 // POST: Create a Stripe Checkout session for a booking
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const allowed = await checkRateLimit(`checkout:${ip}`, CHECKOUT_LIMIT, CHECKOUT_WINDOW_SECONDS)
+    if (!allowed) {
+      return withCors(
+        { error: 'Too many payment attempts. Please try again in a few minutes.' },
+        { status: 429, headers: { 'Retry-After': String(CHECKOUT_WINDOW_SECONDS) } },
+        request,
+        SAME_ORIGIN,
+      )
+    }
+
     const stripe = getStripe()
     const body = await request.json()
     const { booking_id } = body
 
     if (!booking_id) {
-      return withCors({ error: 'booking_id is required' }, 400, request)
+      return withCors({ error: 'booking_id is required' }, 400, request, SAME_ORIGIN)
     }
 
     const supabase = createAdminClient()
@@ -28,7 +47,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (bookingErr || !booking) {
-      return withCors({ error: 'Booking not found' }, 404, request)
+      return withCors({ error: 'Booking not found' }, 404, request, SAME_ORIGIN)
     }
 
     // Get the product name
@@ -47,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     const stripeAccountId = business?.stripe_account_id
     if (!stripeAccountId) {
-      return withCors({ error: 'This business has not set up Stripe payments yet' }, 400, request)
+      return withCors({ error: 'This business has not set up Stripe payments yet' }, 400, request, SAME_ORIGIN)
     }
 
     // If a deposit percentage is configured, only charge that portion now.
@@ -64,7 +83,7 @@ export async function POST(request: NextRequest) {
     const depositAmount = chargeCents / 100
     const balanceAmount = (totalCents - chargeCents) / 100
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://rental-booking-eight.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://partyops.app'
 
     const lineItemName = isDeposit
       ? `${product?.name || 'Booking'} - ${depositPct}% deposit`
@@ -116,9 +135,9 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', booking_id)
 
-    return withCors({ url: session.url }, 200, request)
+    return withCors({ url: session.url }, 200, request, SAME_ORIGIN)
   } catch (error) {
     console.error('Stripe Checkout error:', error)
-    return withCors({ error: 'Failed to create checkout session' }, 500, request)
+    return withCors({ error: 'Failed to create checkout session' }, 500, request, SAME_ORIGIN)
   }
 }

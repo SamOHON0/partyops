@@ -46,7 +46,7 @@ export async function POST() {
     }
 
     // Create an account link for onboarding
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://rental-booking-eight.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://partyops.app'
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${appUrl}/admin/settings?stripe=retry`,

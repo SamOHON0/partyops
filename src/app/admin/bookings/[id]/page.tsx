@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServerComponentClient } from '@/lib/supabase'
 import { getBooking } from '@/lib/api/bookings'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { StatusBadge, Badge } from '@/components/ui/Badge'
+import { StatusBadge, PaymentBadge } from '@/components/ui/Badge'
 import {
   ArrowRightIcon,
   CalendarIcon,
@@ -318,13 +318,7 @@ export default async function BookingDetail({ params }: PageProps) {
               <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-500">
                 Payment
               </h3>
-              {booking.payment_status === 'paid' ? (
-                <Badge tone="success" dot>Paid</Badge>
-              ) : booking.payment_status === 'refunded' ? (
-                <Badge tone="neutral" dot>Refunded</Badge>
-              ) : (
-                <Badge tone="warning" dot>Unpaid</Badge>
-              )}
+              <PaymentBadge booking={booking} dot />
             </div>
 
             <div className="space-y-1.5 text-sm">

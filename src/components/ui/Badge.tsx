@@ -41,6 +41,49 @@ const DOT: Record<Tone, string> = {
   info: 'bg-sky-500',
 }
 
+// ---------------------------------------------------------------------------
+// Payment state
+//
+// `payment_status` only knows unpaid / paid / refunded. When a business takes a
+// deposit, the webhook still writes 'paid' even though a balance is outstanding.
+// The real picture lives in deposit_amount / balance_amount / balance_paid_at.
+// `paymentState` is the single source of truth that every view derives from, so
+// the bookings list, calendar and detail page never disagree.
+// ---------------------------------------------------------------------------
+
+export type PaymentState = 'paid' | 'deposit' | 'unpaid' | 'refunded'
+
+type PaymentFields = {
+  payment_status?: string | null
+  balance_amount?: number | null
+  balance_paid_at?: string | null
+}
+
+export function paymentState(b: PaymentFields): PaymentState {
+  const status = b.payment_status || 'unpaid'
+  const balanceOwed = Number(b.balance_amount || 0) > 0 && !b.balance_paid_at
+
+  if (status === 'refunded') return 'refunded'
+  if (status === 'paid') return balanceOwed ? 'deposit' : 'paid'
+  return 'unpaid'
+}
+
+const PAYMENT_VIEW: Record<PaymentState, { tone: Tone; label: string }> = {
+  paid: { tone: 'success', label: 'Paid' },
+  deposit: { tone: 'info', label: 'Deposit paid' },
+  unpaid: { tone: 'warning', label: 'Unpaid' },
+  refunded: { tone: 'neutral', label: 'Refunded' },
+}
+
+export function PaymentBadge({ booking, dot = false }: { booking: PaymentFields; dot?: boolean }) {
+  const view = PAYMENT_VIEW[paymentState(booking)]
+  return (
+    <Badge tone={view.tone} dot={dot}>
+      {view.label}
+    </Badge>
+  )
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { tone: Tone; label: string }> = {
     pending: { tone: 'warning', label: 'New' },
