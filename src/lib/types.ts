@@ -19,6 +19,11 @@ export interface Business {
   terms_text?: string | null
   terms_url?: string | null
   stripe_account_id?: string | null
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  plan_status?: 'trialing' | 'active' | 'past_due' | 'canceled' | string | null
+  trial_ends_at?: string | null
+  current_period_end?: string | null
   plan?: 'starter' | 'pro' | 'scale' | null
   platform_fee_percent?: number | null
   payment_required?: boolean | null

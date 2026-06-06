@@ -35,7 +35,7 @@ export default async function EmbedPage({
 
   const { data: business } = await supabase
     .from('businesses')
-    .select('id, name, email, phone, payment_instructions, payment_link, stripe_account_id, deposit_percentage, payment_required, terms_enabled, terms_text, terms_url, booking_questions')
+    .select('id, name, email, phone, payment_instructions, payment_link, stripe_account_id, deposit_percentage, payment_required, terms_enabled, terms_text, terms_url, booking_questions, plan')
     .eq('id', businessId)
     .maybeSingle()
 
@@ -175,7 +175,10 @@ export default async function EmbedPage({
     )
   }
 
-  const stripeEnabled = await stripeCanAcceptCharges(business.stripe_account_id ?? null)
+  // Card payments are a Pro+ feature. Starter accounts use manual payment only.
+  const stripeEnabled =
+    business.plan !== 'starter' &&
+    (await stripeCanAcceptCharges(business.stripe_account_id ?? null))
 
   // Only expose contact details to the public iframe if there's a price-on-request
   // item that would actually need them. Avoids leaking phone/email for businesses

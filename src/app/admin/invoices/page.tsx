@@ -29,6 +29,29 @@ export default async function InvoicesPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/admin/login')
 
+  // Invoicing is a Pro+ feature.
+  const { data: planRow } = await supabase
+    .from('businesses')
+    .select('plan')
+    .eq('id', user.id)
+    .single()
+  if (!planRow?.plan || planRow.plan === 'starter') {
+    return (
+      <>
+        <PageHeader title="Invoices" description="Create and send professional invoices." />
+        <div className="po-card p-8 text-center">
+          <h3 className="text-sm font-semibold text-ink-900">Invoicing is a Pro feature</h3>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-ink-500">
+            Upgrade to Pro to create, send and track invoices for your bookings.
+          </p>
+          <a href="/admin/billing" className="po-btn po-btn-primary mt-4 inline-flex">
+            Upgrade to Pro
+          </a>
+        </div>
+      </>
+    )
+  }
+
   let invoices: Invoice[] = []
   try {
     invoices = await getInvoices(user.id)

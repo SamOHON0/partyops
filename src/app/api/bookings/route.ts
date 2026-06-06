@@ -77,12 +77,33 @@ export async function POST(request: NextRequest) {
     // Terms & conditions are only enforced if this business has them enabled.
     const { data: bizTerms } = await supabase
       .from('businesses')
-      .select('terms_enabled')
+      .select('terms_enabled, plan')
       .eq('id', body.business_id)
       .maybeSingle()
     const termsRequired = bizTerms?.terms_enabled === true
     if (termsRequired && body.terms_accepted !== true) {
       return withCors({ error: 'You must accept the terms and conditions to book.' }, 400, request)
+    }
+
+    // Plan limit: Starter (free) is capped at 10 bookings per calendar month.
+    const plan = bizTerms?.plan ?? 'starter'
+    if (plan === 'starter') {
+      const monthStart = new Date()
+      monthStart.setUTCDate(1)
+      monthStart.setUTCHours(0, 0, 0, 0)
+      const { count } = await supabase
+        .from('bookings')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', body.business_id)
+        .neq('status', 'cancelled')
+        .gte('created_at', monthStart.toISOString())
+      if ((count ?? 0) >= 10) {
+        return withCors(
+          { error: 'Online booking is temporarily unavailable. Please contact the business to book.' },
+          403,
+          request,
+        )
+      }
     }
 
     const { data, error } = await supabase.rpc('create_booking_atomic', {

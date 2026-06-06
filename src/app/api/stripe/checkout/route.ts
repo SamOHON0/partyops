@@ -69,6 +69,11 @@ export async function POST(request: NextRequest) {
       return withCors({ error: 'This business has not set up Stripe payments yet' }, 400, request, SAME_ORIGIN)
     }
 
+    // Card payments are a Pro+ feature.
+    if (!business?.plan || business.plan === 'starter') {
+      return withCors({ error: 'Card payments are not available on this plan.' }, 403, request, SAME_ORIGIN)
+    }
+
     // If a deposit percentage is configured, only charge that portion now.
     // The balance is collected offline by the business.
     // If the customer chose to pay in full, ignore the deposit setting.

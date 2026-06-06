@@ -21,6 +21,24 @@ export function getStripe(): Stripe {
 export const STRIPE_PASSTHROUGH_PERCENT = 0.015
 export const STRIPE_PASSTHROUGH_FIXED_CENTS = 25
 
+// --- PartyOps subscription plans (platform billing) ---
+// Stripe Price IDs for the monthly plans, set in env. Create the Prices in your
+// Stripe dashboard (Pro €29/mo, Scale €79/mo) and paste the price IDs here.
+export function priceIdForPlan(plan: string): string | null {
+  if (plan === 'pro') return process.env.STRIPE_PRICE_PRO || null
+  if (plan === 'scale') return process.env.STRIPE_PRICE_SCALE || null
+  return null
+}
+
+export function planForPriceId(priceId?: string | null): 'pro' | 'scale' | null {
+  if (!priceId) return null
+  if (priceId === process.env.STRIPE_PRICE_PRO) return 'pro'
+  if (priceId === process.env.STRIPE_PRICE_SCALE) return 'scale'
+  return null
+}
+
+export const SUBSCRIPTION_TRIAL_DAYS = 14
+
 // PartyOps markup per plan, charged on top of the Stripe pass-through.
 //   Starter (free):  3%
 //   Pro (€29/mo):    1%

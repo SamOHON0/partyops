@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
 import { createServerComponentClient } from '@/lib/supabase'
+import { getStripe, priceIdForPlan, SUBSCRIPTION_TRIAL_DAYS } from '@/lib/stripe'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import { CheckIcon, SparklesIcon } from '@/components/ui/Icon'
@@ -70,28 +70,63 @@ const PLANS: PlanInfo[] = [
   },
 ]
 
-async function changePlan(formData: FormData) {
+// Start (or switch to) a paid plan via Stripe Checkout in subscription mode,
+// with a 14-day card-required trial. The webhook sets the plan once active.
+async function startSubscription(formData: FormData) {
   'use server'
   const plan = formData.get('plan') as Plan
-  if (!['starter', 'pro', 'scale'].includes(plan)) return
+  if (plan !== 'pro' && plan !== 'scale') return
 
   const supabase = await createServerComponentClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return
+  if (!user) redirect('/admin/login')
 
-  // For now this just records the intent. Real Stripe upgrade flow happens separately.
-  await supabase
+  const priceId = priceIdForPlan(plan)
+  if (!priceId) {
+    redirect('/admin/billing?error=' + encodeURIComponent('Plan pricing is not configured yet.'))
+  }
+
+  const { data: business } = await supabase
     .from('businesses')
-    .update({ plan, updated_at: new Date().toISOString() })
+    .select('stripe_customer_id, email, name')
     .eq('id', user.id)
+    .single()
 
-  revalidatePath('/admin/billing')
-  revalidatePath('/admin')
+  const stripe = getStripe()
+  let customerId = business?.stripe_customer_id
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: business?.email ?? user.email ?? undefined,
+      name: business?.name ?? undefined,
+      metadata: { business_id: user.id },
+    })
+    customerId = customer.id
+    await supabase.from('businesses').update({ stripe_customer_id: customerId }).eq('id', user.id)
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://partyops.app'
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer: customerId,
+    line_items: [{ price: priceId as string, quantity: 1 }],
+    subscription_data: {
+      trial_period_days: SUBSCRIPTION_TRIAL_DAYS,
+      metadata: { business_id: user.id, plan },
+    },
+    metadata: { business_id: user.id, plan },
+    success_url: `${appUrl}/admin/billing?upgraded=1`,
+    cancel_url: `${appUrl}/admin/billing`,
+  })
+
+  if (session.url) redirect(session.url)
 }
 
-export default async function BillingPage() {
+// Open the Stripe customer portal so the operator can change card, switch plan,
+// or cancel. Downgrades flow back in through the webhook.
+async function openBillingPortal() {
+  'use server'
   const supabase = await createServerComponentClient()
   const {
     data: { user },
@@ -100,11 +135,46 @@ export default async function BillingPage() {
 
   const { data: business } = await supabase
     .from('businesses')
-    .select('plan, stripe_account_id, email')
+    .select('stripe_customer_id')
+    .eq('id', user.id)
+    .single()
+
+  if (!business?.stripe_customer_id) {
+    redirect('/admin/billing?error=' + encodeURIComponent('No subscription to manage yet.'))
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://partyops.app'
+  const portal = await getStripe().billingPortal.sessions.create({
+    customer: business.stripe_customer_id as string,
+    return_url: `${appUrl}/admin/billing`,
+  })
+  redirect(portal.url)
+}
+
+export default async function BillingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ upgraded?: string; error?: string }>
+}) {
+  const { upgraded, error } = await searchParams
+  const supabase = await createServerComponentClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/admin/login')
+
+  const { data: business } = await supabase
+    .from('businesses')
+    .select('plan, stripe_account_id, email, stripe_customer_id, plan_status, trial_ends_at, current_period_end')
     .eq('id', user.id)
     .maybeSingle()
 
   const currentPlan: Plan = (business?.plan as Plan) || 'starter'
+  const hasSubscription = !!business?.stripe_customer_id
+  const status = business?.plan_status as string | undefined
+  const renews = business?.current_period_end
+    ? new Date(business.current_period_end).toLocaleDateString('en-IE', { day: 'numeric', month: 'short', year: 'numeric' })
+    : null
 
   return (
     <>
@@ -112,6 +182,18 @@ export default async function BillingPage() {
         title="Billing & plan"
         description="Manage your subscription. Change plans anytime. No contracts."
       />
+
+      {upgraded && (
+        <div className="mb-5 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <CheckIcon size={14} />
+          You are all set. Your 14-day trial has started.
+        </div>
+      )}
+      {error && (
+        <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+          {error}
+        </div>
+      )}
 
       {/* Current plan */}
       <div className="po-card mb-8 p-5">
@@ -134,8 +216,23 @@ export default async function BillingPage() {
               )}
             </div>
           </div>
-          <div className="text-xs text-ink-500">
-            Billed monthly · Cancel anytime
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <div className="text-xs text-ink-500">
+              {status === 'trialing'
+                ? `Free trial${renews ? ` · renews ${renews}` : ''}`
+                : status === 'active'
+                  ? `Active${renews ? ` · renews ${renews}` : ''}`
+                  : status === 'past_due'
+                    ? 'Payment failed · update your card'
+                    : 'Billed monthly · Cancel anytime'}
+            </div>
+            {hasSubscription && (
+              <form action={openBillingPortal}>
+                <button type="submit" className="po-btn po-btn-secondary">
+                  Manage billing
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>
@@ -190,16 +287,21 @@ export default async function BillingPage() {
                   <button type="button" className="po-btn po-btn-secondary w-full" disabled>
                     Current plan
                   </button>
+                ) : plan.id === 'starter' ? (
+                  // Downgrade to free is handled by cancelling in the portal.
+                  <form action={openBillingPortal}>
+                    <button type="submit" className="po-btn po-btn-secondary w-full">
+                      {hasSubscription ? 'Manage / cancel' : 'Current plan'}
+                    </button>
+                  </form>
                 ) : (
-                  <form action={changePlan}>
+                  <form action={startSubscription}>
                     <input type="hidden" name="plan" value={plan.id} />
                     <button
                       type="submit"
                       className={`w-full ${plan.highlight ? 'po-btn po-btn-primary' : 'po-btn po-btn-secondary'}`}
                     >
-                      {plan.price > (PLANS.find((p) => p.id === currentPlan)?.price || 0)
-                        ? `Upgrade to ${plan.name}`
-                        : `Switch to ${plan.name}`}
+                      {hasSubscription ? `Switch to ${plan.name}` : `Start ${plan.name} trial`}
                     </button>
                   </form>
                 )}
