@@ -6,6 +6,9 @@ export interface Business {
   address?: string | null
   payment_instructions?: string | null
   payment_link?: string | null
+  terms_enabled?: boolean | null
+  terms_text?: string | null
+  terms_url?: string | null
   stripe_account_id?: string | null
   plan?: 'starter' | 'pro' | 'scale' | null
   created_at: string
@@ -50,6 +53,9 @@ export interface Booking {
   deposit_amount?: number | null
   balance_amount?: number | null
   balance_paid_at?: string | null
+  // Terms acceptance (migration 013)
+  terms_accepted?: boolean | null
+  terms_accepted_at?: string | null
   created_at: string
   updated_at: string
 }

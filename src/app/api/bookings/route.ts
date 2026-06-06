@@ -74,6 +74,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Terms & conditions are only enforced if this business has them enabled.
+    const { data: bizTerms } = await supabase
+      .from('businesses')
+      .select('terms_enabled')
+      .eq('id', body.business_id)
+      .maybeSingle()
+    const termsRequired = bizTerms?.terms_enabled === true
+    if (termsRequired && body.terms_accepted !== true) {
+      return withCors({ error: 'You must accept the terms and conditions to book.' }, 400, request)
+    }
+
     const { data, error } = await supabase.rpc('create_booking_atomic', {
       p_business_id: body.business_id,
       p_product_id: body.product_id,
@@ -89,6 +100,14 @@ export async function POST(request: NextRequest) {
       const message = error.message || 'booking failed'
       const status = /not available/i.test(message) ? 409 : 400
       return withCors({ error: message }, status, request)
+    }
+
+    // Record terms acceptance on the freshly created booking (when accepted).
+    if (data?.id && body.terms_accepted === true) {
+      await supabase
+        .from('bookings')
+        .update({ terms_accepted: true, terms_accepted_at: new Date().toISOString() })
+        .eq('id', data.id)
     }
 
     return withCors({ booking: data }, 201, request)

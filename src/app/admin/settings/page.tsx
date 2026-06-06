@@ -28,6 +28,9 @@ async function saveSettings(formData: FormData) {
       address: (formData.get('address') as string) || null,
       payment_instructions: (formData.get('payment_instructions') as string) || null,
       payment_link: (formData.get('payment_link') as string) || null,
+      terms_enabled: formData.get('terms_enabled') === 'on',
+      terms_text: (formData.get('terms_text') as string) || null,
+      terms_url: (formData.get('terms_url') as string) || null,
       deposit_percentage: depositPct,
       updated_at: new Date().toISOString(),
     })
@@ -103,6 +106,55 @@ export default async function SettingsPage({
                 placeholder="Your business address"
               />
             </div>
+          </div>
+        </section>
+
+        {/* Terms & conditions */}
+        <section className="po-card p-5">
+          <h2 className="mb-1 text-sm font-semibold text-ink-900">Terms &amp; conditions</h2>
+          <p className="mb-4 text-xs text-ink-500">
+            Optional. Turn this on to make customers agree to your terms before they can book.
+          </p>
+
+          <label className="mb-4 flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="terms_enabled"
+              defaultChecked={business.terms_enabled ?? false}
+              className="h-4 w-4 rounded border-ink-300 text-brand-600"
+            />
+            <span className="text-sm text-ink-800">Require customers to accept terms before booking</span>
+          </label>
+
+          <div>
+            <label htmlFor="terms_text" className="mb-1.5 block text-xs font-medium text-ink-700">
+              Terms text
+            </label>
+            <textarea
+              id="terms_text"
+              name="terms_text"
+              rows={6}
+              defaultValue={business.terms_text ?? ''}
+              placeholder="Write your booking, delivery and cancellation terms here. Customers can view this in the booking widget."
+              className="po-input"
+            />
+          </div>
+
+          <div className="mt-4">
+            <label htmlFor="terms_url" className="mb-1.5 block text-xs font-medium text-ink-700">
+              Terms link (optional)
+            </label>
+            <input
+              id="terms_url"
+              name="terms_url"
+              type="url"
+              defaultValue={business.terms_url ?? ''}
+              placeholder="https://yoursite.com/terms"
+              className="po-input"
+            />
+            <p className="mt-1 text-[11px] text-ink-500">
+              If set, the checkbox links here. Otherwise customers view the terms text above.
+            </p>
           </div>
         </section>
 

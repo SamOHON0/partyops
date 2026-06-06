@@ -27,6 +27,9 @@ export default function BookingWidget({
   stripeEnabled = false,
   preselectProductId = null,
   depositPercentage = 0,
+  termsEnabled = false,
+  termsText = null,
+  termsUrl = null,
 }: {
   businessId: string
   businessName: string
@@ -38,6 +41,9 @@ export default function BookingWidget({
   stripeEnabled?: boolean
   preselectProductId?: string | null
   depositPercentage?: number
+  termsEnabled?: boolean
+  termsText?: string | null
+  termsUrl?: string | null
 }) {
   // If the embed page resolved ?item=<slug> to a real product, start with it
   // selected. Customer still sees the picker grid but their chosen item is
@@ -61,6 +67,8 @@ export default function BookingWidget({
     error: string | null
   }>({ checking: false, available: null, remaining: null, error: null })
   const [form, setForm] = useState({ customer_name: '', email: '', phone: '', address: '' })
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bookingId, setBookingId] = useState<string | null>(null)
@@ -148,6 +156,10 @@ export default function BookingWidget({
       setError('Please pick a valid start and end date.')
       return
     }
+    if (termsEnabled && !termsAccepted) {
+      setError('Please accept the terms and conditions to continue.')
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -159,6 +171,7 @@ export default function BookingWidget({
           product_id: selected.id,
           start_date: startDate,
           end_date: endDate,
+          terms_accepted: termsAccepted,
           ...form,
         }),
       })
@@ -731,6 +744,48 @@ export default function BookingWidget({
               />
             </div>
 
+            {termsEnabled && (
+              <div className="rounded-2xl border border-ink-200 bg-white p-4 shadow-sm">
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-ink-300 text-brand-600 focus:ring-brand-500/30"
+                  />
+                  <span className="text-xs leading-relaxed text-ink-700">
+                    I agree to the{' '}
+                    {termsUrl ? (
+                      <a
+                        href={termsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-brand-700 underline hover:text-brand-800"
+                      >
+                        terms and conditions
+                      </a>
+                    ) : termsText ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowTerms((s) => !s)}
+                        className="font-semibold text-brand-700 underline hover:text-brand-800"
+                      >
+                        terms and conditions
+                      </button>
+                    ) : (
+                      <span className="font-semibold text-ink-900">terms and conditions</span>
+                    )}
+                    , including the booking, delivery and cancellation policy.
+                  </span>
+                </label>
+                {termsText && showTerms && (
+                  <div className="mt-3 max-h-48 overflow-auto whitespace-pre-line rounded-xl border border-ink-100 bg-ink-50/60 p-3 text-[11px] leading-relaxed text-ink-600">
+                    {termsText}
+                  </div>
+                )}
+              </div>
+            )}
+
             {error && (
               <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                 {error}
@@ -747,7 +802,7 @@ export default function BookingWidget({
               </button>
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || (termsEnabled && !termsAccepted)}
                 className="flex-[2] rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:bg-ink-200 disabled:text-ink-400"
               >
                 {submitting ? 'Sending...' : 'Request booking'}
