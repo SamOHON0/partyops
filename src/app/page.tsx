@@ -468,6 +468,7 @@ function Pricing() {
         'Email support',
       ],
       cta: 'Start free',
+      ctaHref: '/admin/signup',
       highlight: false,
     },
     {
@@ -484,24 +485,9 @@ function Pricing() {
         'Calendar + blocked dates',
         'Priority support',
       ],
-      cta: 'Start 14-day trial',
+      cta: 'Contact us',
+      ctaHref: 'mailto:hello@squaretwo.ie?subject=PartyOps%20Pro',
       highlight: true,
-    },
-    {
-      name: 'Scale',
-      price: '€79',
-      cadence: 'per month',
-      description: 'Multi-staff teams and higher volumes. Everything in Pro plus:',
-      features: [
-        'No booking fee, just Stripe fees',
-        'Up to 5 staff accounts',
-        'API access',
-        'Custom invoice branding',
-        'CSV exports',
-        'Dedicated onboarding',
-      ],
-      cta: 'Talk to us',
-      highlight: false,
     },
   ]
   return (
@@ -513,7 +499,7 @@ function Pricing() {
             Start free, upgrade when you outgrow it. Cancel anytime. Per-booking fee drops as you scale, plus standard Stripe fees on card payments.
           </p>
         </div>
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2">
           {tiers.map((t) => (
             <div
               key={t.name}
@@ -544,12 +530,12 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/admin/signup"
+              <a
+                href={t.ctaHref}
                 className={`mt-6 po-btn ${t.highlight ? 'po-btn-primary' : 'po-btn-secondary'} w-full`}
               >
                 {t.cta}
-              </Link>
+              </a>
             </div>
           ))}
         </div>
