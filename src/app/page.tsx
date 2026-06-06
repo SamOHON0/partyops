@@ -464,6 +464,7 @@ function Pricing() {
       cadence: 'forever',
       description: 'All the basics. For operators with up to 10 bookings a month.',
       features: [
+        '3% per card booking + Stripe fees',
         'Up to 10 bookings / month',
         'Unlimited items',
         'Booking widget',
@@ -479,6 +480,7 @@ function Pricing() {
       cadence: 'per month',
       description: 'For busy operators who want card payments and automation.',
       features: [
+        '1% per card booking + Stripe fees',
         'Unlimited bookings',
         'Stripe card payments',
         'Customers CRM',
@@ -495,6 +497,7 @@ function Pricing() {
       cadence: 'per month',
       description: 'Multi-staff teams and higher volumes. Everything in Pro plus:',
       features: [
+        'No booking fee, just Stripe fees',
         'Up to 5 staff accounts',
         'API access',
         'Custom invoice branding',
@@ -511,7 +514,7 @@ function Pricing() {
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Fair pricing. No surprises.</h2>
           <p className="mt-4 text-ink-600">
-            Start free, upgrade when you outgrow it. Cancel anytime. Card payments charged at 1.5% + 25c via Stripe.
+            Start free, upgrade when you outgrow it. Cancel anytime. Per-booking fee drops as you scale, plus standard Stripe fees on card payments.
           </p>
         </div>
         <div className="mt-12 grid gap-6 md:grid-cols-3">
@@ -667,7 +670,7 @@ function Footer() {
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Company</div>
             <ul className="mt-3 space-y-2 text-ink-600">
-              <li><a href="mailto:hello@partyops.app" className="hover:text-ink-900">Contact</a></li>
+              <li><a href="mailto:hello@squaretwo.ie" className="hover:text-ink-900">Contact</a></li>
               <li><Link href="/admin/login" className="hover:text-ink-900">Sign in</Link></li>
               <li><Link href="/admin/signup" className="hover:text-ink-900">Get started</Link></li>
             </ul>

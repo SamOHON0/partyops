@@ -27,6 +27,7 @@ const PLANS: PlanInfo[] = [
     price: 0,
     blurb: 'Everything you need to take bookings online.',
     features: [
+      '3% per card booking + Stripe fees',
       'Up to 10 bookings / month',
       '1 embeddable booking widget',
       'Dashboard + calendar',
@@ -41,6 +42,7 @@ const PLANS: PlanInfo[] = [
     price: 29,
     blurb: 'For busy operators with regular bookings.',
     features: [
+      '1% per card booking + Stripe fees',
       'Unlimited bookings',
       'Custom branded widget',
       'Full CRM & lifetime value',
@@ -57,6 +59,7 @@ const PLANS: PlanInfo[] = [
     price: 79,
     blurb: 'For teams running multiple locations or brands.',
     features: [
+      'No booking fee, just Stripe fees',
       'Everything in Pro',
       'Multiple locations',
       'Team members & roles',
@@ -233,8 +236,8 @@ export default async function BillingPage() {
 
       <div className="mt-8 rounded-xl border border-ink-100 bg-ink-50/50 p-5 text-xs text-ink-500">
         Need help choosing? Email{' '}
-        <a href="mailto:hello@partyops.io" className="font-medium text-brand-700 hover:underline">
-          hello@partyops.io
+        <a href="mailto:hello@squaretwo.ie" className="font-medium text-brand-700 hover:underline">
+          hello@squaretwo.ie
         </a>{' '}
         and we'll help you pick the right plan.
       </div>

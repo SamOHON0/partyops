@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase'
-import { getStripe, PLATFORM_FEE_PERCENT } from '@/lib/stripe'
+import { getStripe, computeApplicationFeeCents } from '@/lib/stripe'
 import { corsPreflight, withCors } from '@/lib/cors'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Get the business stripe account + deposit configuration
     const { data: business } = await supabase
       .from('businesses')
-      .select('stripe_account_id, deposit_percentage')
+      .select('stripe_account_id, deposit_percentage, plan, platform_fee_percent')
       .eq('id', booking.business_id)
       .single()
 
@@ -78,7 +78,11 @@ export async function POST(request: NextRequest) {
     const chargeCents = isDeposit
       ? Math.round(totalCents * (depositPct / 100))
       : totalCents
-    const platformFee = Math.round(chargeCents * PLATFORM_FEE_PERCENT)
+    const platformFee = computeApplicationFeeCents(
+      chargeCents,
+      business?.plan,
+      business?.platform_fee_percent,
+    )
 
     const depositAmount = chargeCents / 100
     const balanceAmount = (totalCents - chargeCents) / 100
