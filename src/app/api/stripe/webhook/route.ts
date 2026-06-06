@@ -68,8 +68,8 @@ export async function POST(request: NextRequest) {
           stripe_subscription_id: event.type === 'customer.subscription.deleted' ? null : sub.id,
           plan: isActive && plan ? plan : 'starter',
           trial_ends_at: sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null,
-          current_period_end: sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
+          current_period_end: sub.items?.data?.[0]?.current_period_end
+            ? new Date(sub.items.data[0].current_period_end * 1000).toISOString()
             : null,
           updated_at: new Date().toISOString(),
         }
