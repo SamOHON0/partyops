@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { createServerComponentClient } from '@/lib/supabase'
 import { LogoWordmark, LogoMark } from '@/components/ui/Logo'
 import {
   ArrowRightIcon,
@@ -30,7 +31,12 @@ export default function Home() {
 
 /* ------------------- Nav ------------------- */
 
-function SiteNav() {
+async function SiteNav() {
+  const supabase = await createServerComponentClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   return (
     <header className="sticky top-0 z-50 border-b border-ink-100/80 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3.5 sm:px-6">
@@ -42,16 +48,25 @@ function SiteNav() {
           <a href="#faq" className="hover:text-ink-900">FAQ</a>
         </nav>
         <div className="flex items-center gap-2">
-          <Link
-            href="/admin/login"
-            className="hidden text-sm font-medium text-ink-600 hover:text-ink-900 sm:inline-flex px-3 py-2"
-          >
-            Sign in
-          </Link>
-          <Link href="/admin/signup" className="po-btn po-btn-primary">
-            Start free
-            <ArrowRightIcon size={16} />
-          </Link>
+          {user ? (
+            <Link href="/admin" className="po-btn po-btn-primary">
+              Go to dashboard
+              <ArrowRightIcon size={16} />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/admin/login"
+                className="hidden text-sm font-medium text-ink-600 hover:text-ink-900 sm:inline-flex px-3 py-2"
+              >
+                Sign in
+              </Link>
+              <Link href="/admin/signup" className="po-btn po-btn-primary">
+                Start free
+                <ArrowRightIcon size={16} />
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </header>
