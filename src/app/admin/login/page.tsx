@@ -79,6 +79,12 @@ export default function AdminLogin() {
           <button type="submit" disabled={loading} className="po-btn po-btn-primary w-full">
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
+
+          <p className="text-center text-xs text-ink-500">
+            <Link href="/admin/forgot-password" className="font-medium text-brand-700 hover:text-brand-800">
+              Forgot your password?
+            </Link>
+          </p>
         </form>
 
         <p className="mt-6 text-center text-xs text-ink-500">
