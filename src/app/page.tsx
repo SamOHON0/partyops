@@ -8,7 +8,6 @@ import {
   InvoiceIcon,
   BoltIcon,
   ShieldIcon,
-  SparklesIcon,
   CheckIcon,
   TrendingUpIcon,
 } from '@/components/ui/Icon'
@@ -66,9 +65,6 @@ function Hero() {
     <section className="relative overflow-hidden po-hero-bg">
       <div className="mx-auto max-w-6xl px-4 pb-20 pt-16 sm:px-6 sm:pt-24">
         <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-3 py-1 text-xs font-medium text-brand-700 shadow-sm">
-            <SparklesIcon size={14} /> Built for Irish party hire operators
-          </span>
           <h1 className="mt-6 text-4xl font-semibold tracking-tight text-ink-900 sm:text-6xl">
             Run your party hire business
             <span className="block bg-gradient-to-r from-brand-600 via-brand-500 to-accent-500 bg-clip-text text-transparent">
