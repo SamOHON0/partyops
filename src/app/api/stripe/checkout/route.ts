@@ -73,12 +73,29 @@ export async function POST(request: NextRequest) {
     // The balance is collected offline by the business.
     // If the customer chose to pay in full, ignore the deposit setting.
     const depositPct = Math.max(0, Math.min(100, business?.deposit_percentage ?? 0))
-    const isDeposit = !pay_full && depositPct > 0 && depositPct < 100
+    let isDeposit = !pay_full && depositPct > 0 && depositPct < 100
 
     const totalCents = Math.round(booking.total_price * 100)
-    const chargeCents = isDeposit
+    let chargeCents = isDeposit
       ? Math.round(totalCents * (depositPct / 100))
       : totalCents
+
+    // Stripe rejects charges under €0.50. If a deposit would fall below that,
+    // charge the full amount instead; if even the full amount is too low, card
+    // payment isn't possible for this booking.
+    const STRIPE_MIN_CENTS = 50
+    if (isDeposit && chargeCents < STRIPE_MIN_CENTS) {
+      isDeposit = false
+      chargeCents = totalCents
+    }
+    if (chargeCents < STRIPE_MIN_CENTS) {
+      return withCors(
+        { error: 'This amount is too low to pay by card. Please contact the business to book.' },
+        400,
+        request,
+        SAME_ORIGIN,
+      )
+    }
     const platformFee = computeApplicationFeeCents(
       chargeCents,
       business?.plan,

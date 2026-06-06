@@ -69,9 +69,36 @@ export default async function EmbedPage({
     if (successBookingId) {
       const { data: b } = await supabase
         .from('bookings')
-        .select('deposit_amount, balance_amount')
+        .select('deposit_amount, balance_amount, payment_status, stripe_session_id')
         .eq('id', successBookingId)
         .maybeSingle()
+
+      // Safety net: the webhook normally marks the booking paid, but if it is
+      // delayed or misconfigured, verify the Stripe session here and mark it
+      // paid so a real payment never shows as unpaid. Idempotent with the webhook.
+      if (
+        b &&
+        b.payment_status !== 'paid' &&
+        b.stripe_session_id &&
+        process.env.STRIPE_SECRET_KEY
+      ) {
+        try {
+          const session = await getStripe().checkout.sessions.retrieve(b.stripe_session_id)
+          if (session.payment_status === 'paid') {
+            await supabase
+              .from('bookings')
+              .update({
+                payment_status: 'paid',
+                status: 'confirmed',
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', successBookingId)
+          }
+        } catch (err) {
+          console.error('Payment verification on success page failed:', err)
+        }
+      }
+
       if (b && Number(b.balance_amount) > 0) {
         depositInfo = { deposit: Number(b.deposit_amount), balance: Number(b.balance_amount) }
       }

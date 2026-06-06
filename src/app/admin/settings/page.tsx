@@ -20,7 +20,7 @@ async function saveSettings(formData: FormData) {
   const depositRaw = parseInt((formData.get('deposit_percentage') as string) || '0', 10)
   const depositPct = Number.isFinite(depositRaw) ? Math.max(0, Math.min(100, depositRaw)) : 0
 
-  await supabase
+  const { error } = await supabase
     .from('businesses')
     .update({
       name: (formData.get('name') as string) || undefined,
@@ -37,6 +37,12 @@ async function saveSettings(formData: FormData) {
     })
     .eq('id', user.id)
 
+  if (error) {
+    // Surface the real failure instead of pretending it saved.
+    console.error('Settings save failed:', error)
+    redirect('/admin/settings?error=' + encodeURIComponent(error.message))
+  }
+
   revalidatePath('/admin/settings')
   revalidatePath('/admin')
   redirect('/admin/settings?saved=1')
@@ -45,9 +51,9 @@ async function saveSettings(formData: FormData) {
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>
+  searchParams: Promise<{ saved?: string; error?: string }>
 }) {
-  const { saved } = await searchParams
+  const { saved, error } = await searchParams
   const supabase = await createServerComponentClient()
   const {
     data: { user },
@@ -73,6 +79,21 @@ export default async function SettingsPage({
         <div className="mb-5 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
           <CheckIcon size={14} />
           Settings saved.
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+          Could not save your settings: {error}. If this mentions a missing column, the
+          database migrations need to be run.
+        </div>
+      )}
+
+      {business.payment_required && !business.stripe_account_id && (
+        <div className="mb-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Payment is required to book, but Stripe is not connected yet, so the widget falls
+          back to taking booking requests without payment. Connect Stripe below to actually
+          take payments.
         </div>
       )}
 
