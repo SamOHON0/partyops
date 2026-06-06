@@ -32,6 +32,7 @@ async function saveSettings(formData: FormData) {
       terms_text: (formData.get('terms_text') as string) || null,
       terms_url: (formData.get('terms_url') as string) || null,
       deposit_percentage: depositPct,
+      payment_required: formData.get('payment_required') === 'on',
       updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
@@ -247,6 +248,23 @@ export default async function SettingsPage({
             <p className="mt-1.5 text-[11px] text-ink-500">
               Set to 0 to charge the full amount on booking (default). Set to e.g. 30 to charge a 30% deposit at booking and collect the remaining balance directly from the customer (cash, transfer, or however you prefer). The widget shows the customer the breakdown clearly.
             </p>
+          </div>
+
+          <div className="mt-5 border-t border-ink-100 pt-5">
+            <label className="flex items-start gap-2">
+              <input
+                type="checkbox"
+                name="payment_required"
+                defaultChecked={business.payment_required ?? false}
+                className="mt-0.5 h-4 w-4 rounded border-ink-300 text-brand-600"
+              />
+              <span className="text-sm text-ink-800">
+                Require payment to book
+                <span className="mt-0.5 block text-[11px] font-normal text-ink-500">
+                  Customers must pay before a booking is accepted (no unpaid requests). With a deposit set above, they choose deposit or pay in full. Needs Stripe connected.
+                </span>
+              </span>
+            </label>
           </div>
         </section>
 

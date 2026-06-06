@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     const stripe = getStripe()
     const body = await request.json()
-    const { booking_id } = body
+    const { booking_id, pay_full } = body
 
     if (!booking_id) {
       return withCors({ error: 'booking_id is required' }, 400, request, SAME_ORIGIN)
@@ -71,8 +71,9 @@ export async function POST(request: NextRequest) {
 
     // If a deposit percentage is configured, only charge that portion now.
     // The balance is collected offline by the business.
+    // If the customer chose to pay in full, ignore the deposit setting.
     const depositPct = Math.max(0, Math.min(100, business?.deposit_percentage ?? 0))
-    const isDeposit = depositPct > 0 && depositPct < 100
+    const isDeposit = !pay_full && depositPct > 0 && depositPct < 100
 
     const totalCents = Math.round(booking.total_price * 100)
     const chargeCents = isDeposit

@@ -12,6 +12,7 @@ export interface Business {
   stripe_account_id?: string | null
   plan?: 'starter' | 'pro' | 'scale' | null
   platform_fee_percent?: number | null
+  payment_required?: boolean | null
   created_at: string
   updated_at: string
 }

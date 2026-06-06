@@ -27,6 +27,7 @@ export default function BookingWidget({
   stripeEnabled = false,
   preselectProductId = null,
   depositPercentage = 0,
+  paymentRequired = false,
   termsEnabled = false,
   termsText = null,
   termsUrl = null,
@@ -41,6 +42,7 @@ export default function BookingWidget({
   stripeEnabled?: boolean
   preselectProductId?: string | null
   depositPercentage?: number
+  paymentRequired?: boolean
   termsEnabled?: boolean
   termsText?: string | null
   termsUrl?: string | null
@@ -69,6 +71,7 @@ export default function BookingWidget({
   const [form, setForm] = useState({ customer_name: '', email: '', phone: '', address: '' })
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
+  const [payFull, setPayFull] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bookingId, setBookingId] = useState<string | null>(null)
@@ -149,6 +152,25 @@ export default function BookingWidget({
     }
   }, [selected, startDate, endDate])
 
+  // Start Stripe checkout for a booking. payFullChoice ignores the deposit and
+  // charges the full amount. Redirects the customer to Stripe on success.
+  async function startCheckout(id: string, payFullChoice: boolean): Promise<boolean> {
+    const res = await fetch('/api/stripe/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ booking_id: id, pay_full: payFullChoice }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data?.error || 'Could not start payment')
+    if (!data.url) throw new Error('No checkout URL returned')
+    if (window.top !== window.self) window.open(data.url, '_blank')
+    else window.location.href = data.url
+    return true
+  }
+
+  // When the business requires payment, we must have Stripe to enforce it.
+  const enforcePayment = paymentRequired && stripeEnabled
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
     if (!selected) return
@@ -177,7 +199,20 @@ export default function BookingWidget({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Booking failed')
-      if (data.booking?.id) setBookingId(data.booking.id)
+      const newId = data.booking?.id
+      if (newId) setBookingId(newId)
+
+      // Payment-required mode: send the customer straight to Stripe. No unpaid
+      // "request" state is presented. If checkout fails to start, fall back to
+      // the done screen so they can retry or use manual payment.
+      if (enforcePayment && newId) {
+        try {
+          await startCheckout(newId, payFull)
+          return
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Could not start payment')
+        }
+      }
       setStep('done')
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Booking failed')
@@ -272,27 +307,11 @@ export default function BookingWidget({
               <div className="mx-auto mt-6 max-w-sm">
                 <button
                   onClick={async () => {
+                    if (!bookingId) return
                     setLoadingPayment(true)
                     setPaymentError(null)
                     try {
-                      const res = await fetch('/api/stripe/checkout', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ booking_id: bookingId }),
-                      })
-                      const data = await res.json()
-                      if (!res.ok) {
-                        throw new Error(data?.error || 'Could not start payment')
-                      }
-                      if (data.url) {
-                        if (window.top !== window.self) {
-                          window.open(data.url, '_blank')
-                        } else {
-                          window.location.href = data.url
-                        }
-                      } else {
-                        throw new Error('No checkout URL returned')
-                      }
+                      await startCheckout(bookingId, payFull)
                     } catch (err: unknown) {
                       setPaymentError(
                         err instanceof Error ? err.message : 'Could not start payment',
@@ -696,7 +715,33 @@ export default function BookingWidget({
                   <div className="text-[10px] text-ink-400">total</div>
                 </div>
               </div>
-              {isDepositMode && (
+              {isDepositMode && enforcePayment ? (
+                <div className="mt-3 pt-3 border-t border-ink-100">
+                  <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                    Choose how to pay
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPayFull(false)}
+                      className={`rounded-xl border p-3 text-left transition ${!payFull ? 'border-brand-500 bg-brand-50' : 'border-ink-200 hover:border-ink-300'}`}
+                    >
+                      <div className="text-xs font-semibold text-ink-900">Pay {depositPctClamped}% deposit</div>
+                      <div className="text-base font-bold text-brand-700">€{depositAmount.toFixed(2)}</div>
+                      <div className="text-[10px] text-ink-500">€{balanceAmount.toFixed(2)} due on the day</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPayFull(true)}
+                      className={`rounded-xl border p-3 text-left transition ${payFull ? 'border-brand-500 bg-brand-50' : 'border-ink-200 hover:border-ink-300'}`}
+                    >
+                      <div className="text-xs font-semibold text-ink-900">Pay in full</div>
+                      <div className="text-base font-bold text-brand-700">€{total.toFixed(2)}</div>
+                      <div className="text-[10px] text-ink-500">Nothing left to pay</div>
+                    </button>
+                  </div>
+                </div>
+              ) : isDepositMode ? (
                 <div className="mt-3 pt-3 border-t border-ink-100 text-xs text-ink-700">
                   <div className="flex items-center justify-between gap-2">
                     <span>Pay now ({depositPctClamped}% deposit)</span>
@@ -707,7 +752,7 @@ export default function BookingWidget({
                     <span>€{balanceAmount.toFixed(2)}</span>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <div className="space-y-3 rounded-2xl border border-ink-200 bg-white p-5 shadow-sm">
@@ -805,7 +850,15 @@ export default function BookingWidget({
                 disabled={submitting || (termsEnabled && !termsAccepted)}
                 className="flex-[2] rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:bg-ink-200 disabled:text-ink-400"
               >
-                {submitting ? 'Sending...' : 'Request booking'}
+                {submitting
+                  ? 'Sending...'
+                  : enforcePayment
+                    ? payFull
+                      ? `Pay €${total.toFixed(2)} now`
+                      : isDepositMode
+                        ? `Pay €${depositAmount.toFixed(2)} deposit`
+                        : `Pay €${total.toFixed(2)} now`
+                    : 'Request booking'}
               </button>
             </div>
           </form>
