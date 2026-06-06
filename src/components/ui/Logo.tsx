@@ -1,38 +1,69 @@
 import Link from 'next/link'
 
+/**
+ * PartyOps "Stacked Tiles" mark — two booking cards stacked, the front one
+ * holding a date dot. Brand violet (#7C3AED) on light, light violet (#A78BFA)
+ * back tile. See /brand for the full kit.
+ */
 export function LogoMark({ size = 32, className = '' }: { size?: number; className?: string }) {
   return (
     <svg
       width={size}
-      height={size}
-      viewBox="0 0 32 32"
+      height={(size * 98) / 96}
+      viewBox="0 0 96 98"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden
     >
-      <rect width="32" height="32" rx="8" fill="url(#po-logo-grad)" />
+      <rect x="34" y="10" width="50" height="50" rx="14" fill="#A78BFA" />
       <path
-        d="M10 21V11H15.2C16.9 11 18 12.1 18 13.6C18 15.1 16.9 16.2 15.2 16.2H12.4V21H10Z"
-        fill="white"
+        fill="#7C3AED"
+        fillRule="evenodd"
+        d="M12 46 a14 14 0 0 1 14 -14 h22 a14 14 0 0 1 14 14 v22 a14 14 0 0 1 -14 14 h-22 a14 14 0 0 1 -14 -14 Z M37 57 a11 11 0 1 0 0.01 0 Z"
       />
-      <circle cx="21.5" cy="20.5" r="1.75" fill="#FDA4AF" />
-      <defs>
-        <linearGradient id="po-logo-grad" x1="0" y1="0" x2="32" y2="32">
-          <stop stopColor="#7C3AED" />
-          <stop offset="1" stopColor="#4C1D95" />
-        </linearGradient>
-      </defs>
     </svg>
   )
 }
 
-export function LogoWordmark({ className = '' }: { className?: string }) {
+/** White mark for dark backgrounds. */
+export function LogoMarkWhite({ size = 32, className = '' }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={(size * 98) / 96}
+      viewBox="0 0 96 98"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden
+    >
+      <rect x="34" y="10" width="50" height="50" rx="14" fill="#FFFFFF" opacity="0.55" />
+      <path
+        fill="#FFFFFF"
+        fillRule="evenodd"
+        d="M12 46 a14 14 0 0 1 14 -14 h22 a14 14 0 0 1 14 14 v22 a14 14 0 0 1 -14 14 h-22 a14 14 0 0 1 -14 -14 Z M37 57 a11 11 0 1 0 0.01 0 Z"
+      />
+    </svg>
+  )
+}
+
+/** Horizontal lockup: mark + "Party" (ink) + "Ops" (violet). */
+export function LogoWordmark({
+  className = '',
+  white = false,
+}: {
+  className?: string
+  white?: boolean
+}) {
   return (
     <Link href="/" className={`inline-flex items-center gap-2 ${className}`}>
-      <LogoMark />
-      <span className="text-[17px] font-semibold tracking-tight text-ink-900">
-        PartyOps
+      {white ? <LogoMarkWhite size={30} /> : <LogoMark size={30} />}
+      <span
+        className={`text-[20px] font-extrabold ${white ? 'text-white' : 'text-ink-900'}`}
+        style={{ letterSpacing: '-0.035em' }}
+      >
+        Party<span className="text-brand-600">Ops</span>
       </span>
     </Link>
   )

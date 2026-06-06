@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="PartyOps app icon">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7C3AED"></stop>
+      <stop offset="1" stop-color="#6D28D9"></stop>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="58" fill="url(#g)"></rect>
+  <g transform="translate(36.8,34.9) scale(1.9)">
+    <rect x="34" y="10" width="50" height="50" rx="14" fill="none" stroke="#FFFFFF" stroke-width="5"></rect>
+    <path fill="#FFFFFF" fill-rule="evenodd" d="M12 46 a14 14 0 0 1 14 -14 h22 a14 14 0 0 1 14 14 v22 a14 14 0 0 1 -14 14 h-22 a14 14 0 0 1 -14 -14 Z M37 57 a11 11 0 1 0 0.01 0 Z"></path>
+  </g>
+</svg>

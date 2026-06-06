@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 224 44" width="224" height="44" role="img" aria-label="PartyOps">
+  <g transform="translate(0,2) scale(0.408)">
+    <rect x="34" y="10" width="50" height="50" rx="14" fill="#A78BFA"></rect>
+    <path fill="#7C3AED" fill-rule="evenodd" d="M12 46 a14 14 0 0 1 14 -14 h22 a14 14 0 0 1 14 14 v22 a14 14 0 0 1 -14 14 h-22 a14 14 0 0 1 -14 -14 Z M37 57 a11 11 0 1 0 0.01 0 Z"></path>
+  </g>
+  <text x="52" y="31" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" font-weight="800" font-size="33" letter-spacing="-1.1" fill="#1E1B2E">Party<tspan fill="#7C3AED">Ops</tspan></text>
+</svg>
