@@ -670,7 +670,7 @@ function Footer() {
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-wider text-ink-400">Company</div>
             <ul className="mt-3 space-y-2 text-ink-600">
-              <li><a href="mailto:hello@squaretwo.ie" className="hover:text-ink-900">Contact</a></li>
+              <li><a href="mailto:hello@squaretwo.ie" className="hover:text-ink-900">hello@squaretwo.ie</a></li>
               <li><Link href="/admin/login" className="hover:text-ink-900">Sign in</Link></li>
               <li><Link href="/admin/signup" className="hover:text-ink-900">Get started</Link></li>
             </ul>
