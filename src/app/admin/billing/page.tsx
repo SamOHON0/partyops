@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createServerComponentClient } from '@/lib/supabase'
-import { getStripe } from '@/lib/stripe'
+import { getStripe, priceIdForPlan, SUBSCRIPTION_TRIAL_DAYS } from '@/lib/stripe'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge } from '@/components/ui/Badge'
 import { CheckIcon, SparklesIcon } from '@/components/ui/Icon'
@@ -52,7 +52,73 @@ const PLANS: PlanInfo[] = [
     ],
     highlight: true,
   },
+  {
+    id: 'scale',
+    name: 'Scale',
+    tagline: 'Multi-site',
+    price: 79,
+    blurb: 'For teams running multiple locations or brands.',
+    features: [
+      'No booking fee, just Stripe fees',
+      'Everything in Pro',
+      'Multiple locations',
+      'Team members & roles',
+      'Custom domain',
+      'API access',
+      'Dedicated success manager',
+    ],
+  },
 ]
+
+// Start a Pro subscription via Stripe Checkout (subscription mode) with a
+// 14-day card-required trial. The webhook sets the plan once the sub is active.
+async function startSubscription() {
+  'use server'
+  const supabase = await createServerComponentClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/admin/login')
+
+  const priceId = priceIdForPlan('pro')
+  if (!priceId) {
+    redirect('/admin/billing?error=' + encodeURIComponent('Pro pricing is not configured yet.'))
+  }
+
+  const { data: business } = await supabase
+    .from('businesses')
+    .select('stripe_customer_id, email, name')
+    .eq('id', user.id)
+    .single()
+
+  const stripe = getStripe()
+  let customerId = business?.stripe_customer_id
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: business?.email ?? user.email ?? undefined,
+      name: business?.name ?? undefined,
+      metadata: { business_id: user.id },
+    })
+    customerId = customer.id
+    await supabase.from('businesses').update({ stripe_customer_id: customerId }).eq('id', user.id)
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://partyops.app'
+  const session = await stripe.checkout.sessions.create({
+    mode: 'subscription',
+    customer: customerId,
+    line_items: [{ price: priceId as string, quantity: 1 }],
+    subscription_data: {
+      trial_period_days: SUBSCRIPTION_TRIAL_DAYS,
+      metadata: { business_id: user.id, plan: 'pro' },
+    },
+    metadata: { business_id: user.id, plan: 'pro' },
+    success_url: `${appUrl}/admin/billing?upgraded=1`,
+    cancel_url: `${appUrl}/admin/billing`,
+  })
+
+  if (session.url) redirect(session.url)
+}
 
 // Open the Stripe customer portal so the operator can change card, switch plan,
 // or cancel. Downgrades flow back in through the webhook.
@@ -169,7 +235,7 @@ export default async function BillingPage({
       </div>
 
       {/* Plan picker */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlan
           return (
@@ -225,12 +291,21 @@ export default async function BillingPage({
                       {hasSubscription ? 'Manage / cancel' : 'Current plan'}
                     </button>
                   </form>
+                ) : plan.id === 'pro' ? (
+                  <form action={startSubscription}>
+                    <button
+                      type="submit"
+                      className={`w-full ${plan.highlight ? 'po-btn po-btn-primary' : 'po-btn po-btn-secondary'}`}
+                    >
+                      {hasSubscription ? 'Switch to Pro' : 'Start 14-day trial'}
+                    </button>
+                  </form>
                 ) : (
                   <a
                     href={`mailto:hello@squaretwo.ie?subject=${encodeURIComponent('PartyOps ' + plan.name)}`}
-                    className={`inline-flex w-full ${plan.highlight ? 'po-btn po-btn-primary' : 'po-btn po-btn-secondary'}`}
+                    className="inline-flex w-full po-btn po-btn-secondary"
                   >
-                    Contact us to upgrade
+                    Contact us
                   </a>
                 )}
               </div>
