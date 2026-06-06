@@ -1,3 +1,12 @@
+export type BookingQuestionType = 'text' | 'checkbox'
+
+export interface BookingQuestion {
+  id: string
+  label: string
+  type: BookingQuestionType
+  required: boolean
+}
+
 export interface Business {
   id: string
   name: string
@@ -13,6 +22,7 @@ export interface Business {
   plan?: 'starter' | 'pro' | 'scale' | null
   platform_fee_percent?: number | null
   payment_required?: boolean | null
+  booking_questions?: BookingQuestion[] | null
   created_at: string
   updated_at: string
 }
@@ -58,6 +68,7 @@ export interface Booking {
   // Terms acceptance (migration 013)
   terms_accepted?: boolean | null
   terms_accepted_at?: string | null
+  custom_fields?: Record<string, string> | null
   created_at: string
   updated_at: string
 }

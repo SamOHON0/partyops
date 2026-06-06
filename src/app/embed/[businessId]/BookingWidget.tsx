@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import type { BookingQuestion } from '@/lib/types'
 
 type Product = {
   id: string
@@ -31,6 +32,7 @@ export default function BookingWidget({
   termsEnabled = false,
   termsText = null,
   termsUrl = null,
+  questions = [],
 }: {
   businessId: string
   businessName: string
@@ -46,6 +48,7 @@ export default function BookingWidget({
   termsEnabled?: boolean
   termsText?: string | null
   termsUrl?: string | null
+  questions?: BookingQuestion[]
 }) {
   // If the embed page resolved ?item=<slug> to a real product, start with it
   // selected. Customer still sees the picker grid but their chosen item is
@@ -72,6 +75,7 @@ export default function BookingWidget({
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
   const [payFull, setPayFull] = useState(false)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [bookingId, setBookingId] = useState<string | null>(null)
@@ -182,8 +186,29 @@ export default function BookingWidget({
       setError('Please accept the terms and conditions to continue.')
       return
     }
+    for (const q of questions) {
+      if (!q.required) continue
+      const a = answers[q.id]
+      if (q.type === 'checkbox' ? a !== 'yes' : !(a && a.trim())) {
+        setError(
+          q.type === 'checkbox'
+            ? 'Please tick: ' + q.label
+            : 'Please answer: ' + q.label,
+        )
+        return
+      }
+    }
     setSubmitting(true)
     setError(null)
+    const customFields: Record<string, string> = {}
+    for (const q of questions) {
+      const a = answers[q.id]
+      if (q.type === 'checkbox') {
+        if (a === 'yes') customFields[q.label] = 'Yes'
+      } else if (a && a.trim()) {
+        customFields[q.label] = a.trim()
+      }
+    }
     try {
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -194,6 +219,7 @@ export default function BookingWidget({
           start_date: startDate,
           end_date: endDate,
           terms_accepted: termsAccepted,
+          custom_fields: customFields,
           ...form,
         }),
       })
@@ -788,6 +814,43 @@ export default function BookingWidget({
                 placeholder="123 Main St, Dublin"
               />
             </div>
+
+            {questions.length > 0 && (
+              <div className="space-y-3 rounded-2xl border border-ink-200 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-semibold text-ink-800">A few more details</h3>
+                {questions.map((q) =>
+                  q.type === 'checkbox' ? (
+                    <label key={q.id} className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={answers[q.id] === 'yes'}
+                        onChange={(e) =>
+                          setAnswers((a) => ({ ...a, [q.id]: e.target.checked ? 'yes' : '' }))
+                        }
+                        className="mt-0.5 h-4 w-4 flex-shrink-0 rounded border-ink-300 text-brand-600"
+                      />
+                      <span className="text-xs leading-relaxed text-ink-700">
+                        {q.label}
+                        {q.required && <span className="text-rose-500"> *</span>}
+                      </span>
+                    </label>
+                  ) : (
+                    <label key={q.id} className="block">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-500">
+                        {q.label}
+                        {q.required && <span className="text-rose-500"> *</span>}
+                      </span>
+                      <input
+                        type="text"
+                        value={answers[q.id] || ''}
+                        onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
+                        className="mt-1.5 w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                      />
+                    </label>
+                  ),
+                )}
+              </div>
+            )}
 
             {termsEnabled && (
               <div className="rounded-2xl border border-ink-200 bg-white p-4 shadow-sm">

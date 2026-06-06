@@ -102,12 +102,23 @@ export async function POST(request: NextRequest) {
       return withCors({ error: message }, status, request)
     }
 
-    // Record terms acceptance on the freshly created booking (when accepted).
-    if (data?.id && body.terms_accepted === true) {
-      await supabase
-        .from('bookings')
-        .update({ terms_accepted: true, terms_accepted_at: new Date().toISOString() })
-        .eq('id', data.id)
+    // Record terms acceptance and any custom question answers on the new booking.
+    if (data?.id) {
+      const postUpdate: Record<string, unknown> = {}
+      if (body.terms_accepted === true) {
+        postUpdate.terms_accepted = true
+        postUpdate.terms_accepted_at = new Date().toISOString()
+      }
+      if (
+        body.custom_fields &&
+        typeof body.custom_fields === 'object' &&
+        !Array.isArray(body.custom_fields)
+      ) {
+        postUpdate.custom_fields = body.custom_fields
+      }
+      if (Object.keys(postUpdate).length > 0) {
+        await supabase.from('bookings').update(postUpdate).eq('id', data.id)
+      }
     }
 
     return withCors({ booking: data }, 201, request)

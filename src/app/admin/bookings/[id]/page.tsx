@@ -252,6 +252,23 @@ export default async function BookingDetail({ params }: PageProps) {
             </dl>
           </div>
 
+          {/* Booking questions (custom) */}
+          {booking.custom_fields && Object.keys(booking.custom_fields).length > 0 && (
+            <div className="po-card p-5">
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-500">
+                Booking questions
+              </h3>
+              <dl className="space-y-2">
+                {Object.entries(booking.custom_fields).map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-4 text-sm">
+                    <dt className="text-ink-500">{k}</dt>
+                    <dd className="text-right font-medium text-ink-900">{String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
           {/* Booking */}
           <div className="po-card p-5">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-500">

@@ -35,7 +35,7 @@ export default async function EmbedPage({
 
   const { data: business } = await supabase
     .from('businesses')
-    .select('id, name, email, phone, payment_instructions, payment_link, stripe_account_id, deposit_percentage, payment_required, terms_enabled, terms_text, terms_url')
+    .select('id, name, email, phone, payment_instructions, payment_link, stripe_account_id, deposit_percentage, payment_required, terms_enabled, terms_text, terms_url, booking_questions')
     .eq('id', businessId)
     .maybeSingle()
 
@@ -171,6 +171,7 @@ export default async function EmbedPage({
       termsEnabled={business.terms_enabled ?? false}
       termsText={business.terms_text ?? null}
       termsUrl={business.terms_url ?? null}
+      questions={business.booking_questions ?? []}
     />
   )
 }

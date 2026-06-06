@@ -41,6 +41,7 @@ const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     label: 'Account',
     items: [
       { href: '/admin/embed', label: 'Embed', icon: EmbedIcon },
+      { href: '/admin/booking-flow', label: 'Booking flow', icon: EmbedIcon },
       { href: '/admin/billing', label: 'Billing', icon: BillingIcon },
       { href: '/admin/settings', label: 'Settings', icon: SettingsIcon },
     ],
