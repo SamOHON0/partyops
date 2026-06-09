@@ -86,7 +86,7 @@ export default function EditProductForm({
         <span className="text-sm">
           <span className="font-medium text-ink-900">Price on request</span>
           <span className="block text-xs text-ink-500 mt-0.5">
-            Hide the price and date picker. Customer sees a "Call for price" badge and is prompted to contact you for a quote.
+            Hide the price and date picker. Customer sees a &quot;Call for price&quot; badge and is prompted to contact you for a quote.
           </span>
         </span>
       </label>

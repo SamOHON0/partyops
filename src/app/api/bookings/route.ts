@@ -49,6 +49,9 @@ export async function POST(request: NextRequest) {
     if (!dateRe.test(body.start_date) || !dateRe.test(body.end_date)) {
       return withCors({ error: 'Invalid date format. Use YYYY-MM-DD' }, 400, request)
     }
+    if (body.end_date < body.start_date) {
+      return withCors({ error: 'End date must be on or after start date' }, 400, request)
+    }
 
     // Validate UUID format for IDs
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -135,7 +138,14 @@ export async function POST(request: NextRequest) {
         typeof body.custom_fields === 'object' &&
         !Array.isArray(body.custom_fields)
       ) {
-        postUpdate.custom_fields = body.custom_fields
+        // Cap size and coerce to strings - this is a public endpoint, so don't
+        // let a script stuff megabytes of arbitrary JSON into the row.
+        const entries = Object.entries(body.custom_fields).slice(0, 30)
+        const sanitized: Record<string, string> = {}
+        for (const [k, v] of entries) {
+          sanitized[String(k).slice(0, 200)] = String(v).slice(0, 1000)
+        }
+        postUpdate.custom_fields = sanitized
       }
       if (Object.keys(postUpdate).length > 0) {
         await supabase.from('bookings').update(postUpdate).eq('id', data.id)

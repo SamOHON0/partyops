@@ -23,8 +23,15 @@ export function InvoiceForm({
   defaultInvoiceNumber: string
   prefill?: Prefill
 }) {
-  const today = new Date().toISOString().slice(0, 10)
-  const plus14 = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10)
+  // Lazy state init: reading the clock during render is impure (React Compiler
+  // purity rule) and re-renders would shift the dates mid-edit.
+  const [{ today, plus14 }] = useState(() => {
+    const now = Date.now()
+    return {
+      today: new Date(now).toISOString().slice(0, 10),
+      plus14: new Date(now + 14 * 86_400_000).toISOString().slice(0, 10),
+    }
+  })
 
   const [lineItems, setLineItems] = useState<InvoiceLineItem[]>(
     prefill.line_items && prefill.line_items.length

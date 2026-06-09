@@ -3,7 +3,6 @@ import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createServerComponentClient } from '@/lib/supabase'
 import { getInvoice, isOverdue } from '@/lib/api/invoices'
-import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge, StatusBadge } from '@/components/ui/Badge'
 import {
   ArrowRightIcon,

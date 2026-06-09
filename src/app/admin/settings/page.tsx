@@ -20,6 +20,14 @@ async function saveSettings(formData: FormData) {
   const depositRaw = parseInt((formData.get('deposit_percentage') as string) || '0', 10)
   const depositPct = Number.isFinite(depositRaw) ? Math.max(0, Math.min(100, depositRaw)) : 0
 
+  // payment_link and terms_url render as customer-facing hrefs in the embed
+  // widget; only allow http(s) so a javascript: URL can never be stored.
+  const safeUrl = (v: FormDataEntryValue | null): string | null => {
+    const s = ((v as string) || '').trim()
+    if (!s) return null
+    return /^https?:\/\//i.test(s) ? s : null
+  }
+
   const { error } = await supabase
     .from('businesses')
     .update({
@@ -27,10 +35,10 @@ async function saveSettings(formData: FormData) {
       phone: (formData.get('phone') as string) || null,
       address: (formData.get('address') as string) || null,
       payment_instructions: (formData.get('payment_instructions') as string) || null,
-      payment_link: (formData.get('payment_link') as string) || null,
+      payment_link: safeUrl(formData.get('payment_link')),
       terms_enabled: formData.get('terms_enabled') === 'on',
       terms_text: (formData.get('terms_text') as string) || null,
-      terms_url: (formData.get('terms_url') as string) || null,
+      terms_url: safeUrl(formData.get('terms_url')),
       deposit_percentage: depositPct,
       payment_required: formData.get('payment_required') === 'on',
       updated_at: new Date().toISOString(),
@@ -222,7 +230,7 @@ export default async function SettingsPage({
                 className="po-input"
               />
               <p className="mt-1 text-[11px] text-ink-500">
-                Revolut.me, PayPal.me, Stripe link, etc. Customers see a "Pay now" button.
+                Revolut.me, PayPal.me, Stripe link, etc. Customers see a &quot;Pay now&quot; button.
               </p>
             </div>
           </div>

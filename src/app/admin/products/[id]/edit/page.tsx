@@ -16,6 +16,11 @@ async function updateProduct(id: string, formData: FormData) {
   if (!user) return
 
   const priceOnRequest = formData.get('price_on_request') === 'true'
+  // Guard against NaN from non-numeric input: NaN would either be rejected by
+  // Postgres or corrupt availability/pricing maths downstream.
+  const price = parseFloat((formData.get('price_per_day') as string) || '0')
+  const qty = parseInt((formData.get('quantity_available') as string) || '1', 10)
+  const deliveryFee = parseFloat((formData.get('delivery_fee') as string) || '0')
   // Always store the entered price (even when price_on_request is true) so admins
   // can toggle the flag back off without losing the underlying value. Customer-facing
   // widgets check the boolean and ignore the price when it's true.
@@ -24,9 +29,9 @@ async function updateProduct(id: string, formData: FormData) {
     .update({
       name: formData.get('name') as string,
       description: (formData.get('description') as string) || null,
-      price_per_day: parseFloat((formData.get('price_per_day') as string) || '0'),
-      quantity_available: parseInt(formData.get('quantity_available') as string, 10),
-      delivery_fee: parseFloat((formData.get('delivery_fee') as string) || '0'),
+      price_per_day: Number.isFinite(price) && price >= 0 ? price : 0,
+      quantity_available: Number.isFinite(qty) && qty >= 0 ? qty : 1,
+      delivery_fee: Number.isFinite(deliveryFee) && deliveryFee >= 0 ? deliveryFee : 0,
       image_url: (formData.get('image_url') as string) || null,
       price_on_request: priceOnRequest,
       updated_at: new Date().toISOString(),
@@ -44,10 +49,19 @@ export default async function EditProduct({
 }) {
   const { id } = await params
   const supabase = await createServerComponentClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/admin/login')
+
+  // Products are world-readable via the "Public can view products" RLS policy,
+  // so scope the read to this business or any logged-in user could view
+  // another operator's product in the edit form.
   const { data: product } = await supabase
     .from('products')
     .select('*')
     .eq('id', id)
+    .eq('business_id', user.id)
     .single()
   if (!product) notFound()
 

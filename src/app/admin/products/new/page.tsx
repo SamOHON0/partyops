@@ -40,15 +40,23 @@ export default function NewProduct() {
       } = await supabase.auth.getUser()
       if (!user) throw new Error('Not signed in')
 
+      // Guard against NaN from non-numeric input.
+      const price = parseFloat(formData.price_per_day || '0')
+      const qty = parseInt(formData.quantity_available || '1', 10)
+      const deliveryFee = parseFloat(formData.delivery_fee || '0')
+      if (!Number.isFinite(price) || price < 0) throw new Error('Enter a valid price per day')
+      if (!Number.isFinite(qty) || qty < 0) throw new Error('Enter a valid quantity')
+      if (!Number.isFinite(deliveryFee) || deliveryFee < 0) throw new Error('Enter a valid delivery fee')
+
       const { error } = await supabase.from('products').insert({
         business_id: user.id,
         name: formData.name,
         description: formData.description || null,
         // Store the entered price even if price_on_request is on; customer-facing
         // widgets read the boolean and hide price/booking when true.
-        price_per_day: parseFloat(formData.price_per_day || '0'),
-        quantity_available: parseInt(formData.quantity_available),
-        delivery_fee: parseFloat(formData.delivery_fee || '0'),
+        price_per_day: price,
+        quantity_available: qty,
+        delivery_fee: deliveryFee,
         setup_time_buffer: 0,
         image_url: formData.image_url || null,
         price_on_request: formData.price_on_request,
@@ -169,7 +177,7 @@ export default function NewProduct() {
           <span className="text-sm">
             <span className="font-medium text-ink-900">Price on request</span>
             <span className="block text-xs text-ink-500 mt-0.5">
-              Hide the price and date picker. Customer sees a "Call for price" badge and is prompted to contact you for a quote.
+              Hide the price and date picker. Customer sees a &quot;Call for price&quot; badge and is prompted to contact you for a quote.
             </span>
           </span>
         </label>

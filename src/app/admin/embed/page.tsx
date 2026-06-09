@@ -41,7 +41,7 @@ export default async function EmbedSnippetPage() {
               </div>
             </div>
             <p className="mb-3 text-sm text-ink-600">
-              Paste this into any page on your website. It loads in an iframe so it won't affect
+              Paste this into any page on your website. It loads in an iframe so it won&apos;t affect
               your existing styles.
             </p>
             <CopySnippet value={snippet} language="html" />
@@ -66,7 +66,7 @@ export default async function EmbedSnippetPage() {
           <div className="po-card p-5">
             <h3 className="mb-3 text-sm font-semibold text-ink-900">How to add it</h3>
             <ol className="space-y-2 text-sm text-ink-700">
-              <Step n={1}>Log into your website's CMS (WordPress, Squarespace, Wix, etc.).</Step>
+              <Step n={1}>Log into your website&apos;s CMS (WordPress, Squarespace, Wix, etc.).</Step>
               <Step n={2}>Find the page where you want bookings. Edit it in HTML or Custom Code mode.</Step>
               <Step n={3}>Paste the snippet anywhere in the page body.</Step>
               <Step n={4}>Save and publish. The widget appears in seconds.</Step>

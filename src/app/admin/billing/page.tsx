@@ -344,7 +344,7 @@ export default async function BillingPage({
         <a href="mailto:hello@squaretwo.ie" className="font-medium text-brand-700 hover:underline">
           hello@squaretwo.ie
         </a>{' '}
-        and we'll help you pick the right plan.
+        and we&apos;ll help you pick the right plan.
       </div>
     </>
   )

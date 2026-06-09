@@ -50,6 +50,15 @@ export async function POST(request: NextRequest) {
       return withCors({ error: 'Booking not found' }, 404, request, SAME_ORIGIN)
     }
 
+    // Never create a checkout session for a booking that's already paid or
+    // cancelled - prevents double charges from stale tabs / double clicks.
+    if (booking.payment_status === 'paid') {
+      return withCors({ error: 'This booking has already been paid.' }, 409, request, SAME_ORIGIN)
+    }
+    if (booking.status === 'cancelled') {
+      return withCors({ error: 'This booking has been cancelled.' }, 409, request, SAME_ORIGIN)
+    }
+
     // Get the product name
     const { data: product } = await supabase
       .from('products')
@@ -80,7 +89,10 @@ export async function POST(request: NextRequest) {
     const depositPct = Math.max(0, Math.min(100, business?.deposit_percentage ?? 0))
     let isDeposit = !pay_full && depositPct > 0 && depositPct < 100
 
-    const totalCents = Math.round(booking.total_price * 100)
+    const totalCents = Math.round(Number(booking.total_price) * 100)
+    if (!Number.isFinite(totalCents) || totalCents <= 0) {
+      return withCors({ error: 'Invalid booking amount' }, 400, request, SAME_ORIGIN)
+    }
     let chargeCents = isDeposit
       ? Math.round(totalCents * (depositPct / 100))
       : totalCents

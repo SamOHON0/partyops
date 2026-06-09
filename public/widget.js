@@ -74,9 +74,12 @@
     if (!event.data) return;
     if (
       (event.data.type === 'partyops:height' || event.data.type === 'rental-widget:height') &&
-      typeof event.data.height === 'number'
+      typeof event.data.height === 'number' &&
+      isFinite(event.data.height) &&
+      event.data.height > 0 &&
+      event.data.height < 10000
     ) {
-      iframe.style.height = event.data.height + 'px';
+      iframe.style.height = Math.ceil(event.data.height) + 'px';
     }
   });
 })();

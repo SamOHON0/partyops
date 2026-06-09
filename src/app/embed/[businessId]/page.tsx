@@ -79,6 +79,7 @@ export default async function EmbedPage({
       if (
         b &&
         b.payment_status !== 'paid' &&
+        b.payment_status !== 'refunded' &&
         b.stripe_session_id &&
         process.env.STRIPE_SECRET_KEY
       ) {
@@ -93,6 +94,8 @@ export default async function EmbedPage({
                 updated_at: new Date().toISOString(),
               })
               .eq('id', successBookingId)
+              .neq('payment_status', 'refunded')
+              .neq('status', 'cancelled')
           }
         } catch (err) {
           console.error('Payment verification on success page failed:', err)

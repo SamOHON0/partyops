@@ -36,6 +36,8 @@ export async function POST(request: NextRequest) {
       // handled by the customer.subscription.* events below.
       if (bookingId) {
         const supabase = createAdminClient()
+        // Idempotency guard: Stripe can redeliver events. Never let a replayed
+        // event flip a refunded booking back to paid or resurrect a cancelled one.
         await supabase
           .from('bookings')
           .update({
@@ -44,6 +46,8 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', bookingId)
+          .neq('payment_status', 'refunded')
+          .neq('status', 'cancelled')
       }
     }
 

@@ -154,7 +154,7 @@ export default function BookingWidget({
     return () => {
       cancelled = true
     }
-  }, [selected, startDate, endDate])
+  }, [selected, startDate, endDate, businessId])
 
   // Start Stripe checkout for a booking. payFullChoice ignores the deposit and
   // charges the full amount. Redirects the customer to Stripe on success.
@@ -583,7 +583,7 @@ export default function BookingWidget({
                 </div>
                 {!businessPhone && !businessEmail && (
                   <p className="mt-3 text-xs text-ink-500">
-                    Contact details for {businessName} aren't set up yet.
+                    Contact details for {businessName} aren&apos;t set up yet.
                   </p>
                 )}
               </div>
