@@ -681,6 +681,10 @@ export default function BookingWidget({
                         </div>
                       )}
                     </div>
+                  ) : availability.error ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+                      Couldn&apos;t check availability right now. Please try again in a moment.
+                    </div>
                   ) : (
                     <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
                       Not available for those dates. Try different dates.
