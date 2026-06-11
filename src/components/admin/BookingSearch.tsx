@@ -43,7 +43,8 @@ export function BookingSearch({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Search customer, email, item..."
-        className="po-input pl-9 pr-9"
+        className="po-input"
+        style={{ paddingLeft: '2.25rem', paddingRight: '2.25rem' }}
         aria-label="Search bookings"
       />
       {value && (

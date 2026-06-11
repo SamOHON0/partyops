@@ -199,7 +199,8 @@ export default async function InvoicesPage({
                 name="q"
                 defaultValue={query}
                 placeholder="Search number, customer..."
-                className="po-input pl-9"
+                className="po-input"
+                style={{ paddingLeft: '2.25rem' }}
               />
               {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
             </form>

@@ -101,7 +101,8 @@ export default async function CustomersPage({
                 name="q"
                 defaultValue={query}
                 placeholder="Search name, email, phone..."
-                className="po-input pl-9"
+                className="po-input"
+                style={{ paddingLeft: '2.25rem' }}
               />
               {sort !== 'recent' && <input type="hidden" name="sort" value={sort} />}
             </form>
