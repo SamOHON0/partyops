@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { createServerComponentClient } from '@/lib/supabase'
-import { getCustomerByKey } from '@/lib/api/customers'
+import { getCustomerByKey, customerKey } from '@/lib/api/customers'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Badge, StatusBadge } from '@/components/ui/Badge'
 import {
@@ -20,6 +21,34 @@ type PageProps = {
   params: Promise<{ key: string }>
 }
 
+async function renameCustomer(formData: FormData) {
+  'use server'
+  const supabase = await createServerComponentClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  const key = (formData.get('key') as string) || ''
+  const newName = ((formData.get('name') as string) || '').trim().slice(0, 120)
+  if (!key || !newName) return
+
+  const customer = await getCustomerByKey(user.id, key)
+  if (!customer) return
+
+  const ids = customer.bookings.map((b) => b.id)
+  await supabase
+    .from('bookings')
+    .update({ customer_name: newName, updated_at: new Date().toISOString() })
+    .in('id', ids)
+    .eq('business_id', user.id)
+
+  revalidatePath('/admin/customers')
+  // Email-less customers are keyed by name+phone, so renaming changes the key.
+  const newKey = customerKey(customer.email || null, newName, customer.phone)
+  redirect(`/admin/customers/${newKey}`)
+}
+
 export default async function CustomerDetail({ params }: PageProps) {
   const { key } = await params
   const supabase = await createServerComponentClient()
@@ -28,8 +57,7 @@ export default async function CustomerDetail({ params }: PageProps) {
   } = await supabase.auth.getUser()
   if (!user) redirect('/admin/login')
 
-  const decoded = decodeURIComponent(key)
-  const customer = await getCustomerByKey(user.id, decoded)
+  const customer = await getCustomerByKey(user.id, key)
   if (!customer) notFound()
 
   const initials = (customer.name || customer.email || '?')
@@ -129,6 +157,32 @@ export default async function CustomerDetail({ params }: PageProps) {
                 />
               )}
             </div>
+
+            <form action={renameCustomer} className="mt-5 border-t border-ink-100 pt-4">
+              <input type="hidden" name="key" value={customer.key} />
+              <label
+                htmlFor="customer-name"
+                className="mb-1.5 block text-[10px] font-medium uppercase tracking-wider text-ink-400"
+              >
+                Customer name
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="customer-name"
+                  name="name"
+                  defaultValue={customer.name || ''}
+                  required
+                  maxLength={120}
+                  className="po-input flex-1 text-sm"
+                />
+                <button type="submit" className="po-btn po-btn-secondary text-xs">
+                  Save
+                </button>
+              </div>
+              <p className="mt-1.5 text-[10px] text-ink-400">
+                Updates the name on all of this customer&apos;s bookings.
+              </p>
+            </form>
 
             <div className="mt-5 flex flex-wrap gap-2">
               <Link

@@ -26,7 +26,17 @@ export async function getCustomerByKey(
   key: string,
 ): Promise<CustomerRecord | null> {
   const customers = await getCustomers(businessId)
-  return customers.find((c) => c.key === key) || null
+  const wanted = safeDecode(key)
+  return customers.find((c) => c.key === key || safeDecode(c.key) === wanted) || null
+}
+
+/** decodeURIComponent that never throws (returns input on malformed sequences). */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
 }
 
 /** Build a URL-safe customer key. Prefers email; falls back to name|phone. */

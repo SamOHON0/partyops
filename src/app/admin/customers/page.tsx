@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/Badge'
 import {
   UsersIcon,
   SearchIcon,
-  ArrowRightIcon,
   MailIcon,
   PhoneIcon,
 } from '@/components/ui/Icon'
@@ -145,13 +144,12 @@ export default async function CustomersPage({
             />
           ) : (
             <div className="po-card overflow-hidden">
-              <div className="hidden border-b border-ink-100 bg-ink-50/40 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-500 sm:grid sm:grid-cols-[1.8fr_1.6fr_0.7fr_0.9fr_0.9fr_auto] sm:gap-4">
+              <div className="hidden border-b border-ink-100 bg-ink-50/40 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-500 sm:grid sm:grid-cols-[1.8fr_1.6fr_0.7fr_0.9fr_0.9fr] sm:gap-4">
                 <div>Customer</div>
                 <div>Contact</div>
                 <div className="text-right">Bookings</div>
                 <div className="text-right">Lifetime value</div>
                 <div>Last booked</div>
-                <div className="sr-only">View</div>
               </div>
 
               <ul className="divide-y divide-ink-100">
@@ -166,7 +164,7 @@ export default async function CustomersPage({
                   const href = `/admin/customers/${c.key}`
 
                   return (
-                    <li key={c.key} className="px-4 py-3 transition hover:bg-ink-50/40 sm:grid sm:grid-cols-[1.8fr_1.6fr_0.7fr_0.9fr_0.9fr_auto] sm:items-center sm:gap-4">
+                    <li key={c.key} className="px-4 py-3 transition hover:bg-ink-50/40 sm:grid sm:grid-cols-[1.8fr_1.6fr_0.7fr_0.9fr_0.9fr] sm:items-center sm:gap-4">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-semibold text-white">
                           {initials || 'G'}
@@ -215,15 +213,6 @@ export default async function CustomersPage({
                         </div>
                       </div>
 
-                      <div className="mt-2 sm:mt-0 sm:text-right">
-                        <Link
-                          href={href}
-                          className="po-btn po-btn-ghost px-2 py-1 text-xs"
-                          aria-label="View customer"
-                        >
-                          <ArrowRightIcon size={14} />
-                        </Link>
-                      </div>
                     </li>
                   )
                 })}
